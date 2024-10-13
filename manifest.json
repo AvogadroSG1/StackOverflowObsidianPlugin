@@ -1,0 +1,11 @@
+{
+	"id": "stackoverflow-for-teams",
+	"name": "Stack Overflow For Teams",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Syncs your markdown files with your Stack Overflow for Teams instance.",
+	"author": "AvogadroSG1",
+	"authorUrl": "https://github.com/AvogadroSG1",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
