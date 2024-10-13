@@ -20,7 +20,8 @@
   },
   "exclude": [
     "dist",
-    "node_modules"
+    "node_modules",
+    "generated-api/**/*" // generated API files
   ],
   "filesGlob": [
     "./**/*.ts",
