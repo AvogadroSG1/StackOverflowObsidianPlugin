@@ -1,4 +1,4 @@
-import { App, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+import { App, ButtonComponent, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import { parse, stringify } from 'yaml';
 import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesArticleIdLinkedQuestionsGetPageSizeEnum, TeamsTeamArticlesPostRequest } from './generated-api'
 
@@ -27,6 +27,7 @@ let configuration = new Configuration({
 });
 
 const defaultTagIfNonePresent = ['obsidian'];
+const defaultArticleType = 'knowledgeArticle';
 
 export class DisplayMessageModal extends Modal {
 	constructor(app: App, message: string) {
@@ -42,22 +43,34 @@ export class GetArticleIdModal extends Modal {
 		this.setTitle("What is the Id of the article you'd like to retrieve?");
 
 		let articleId = '';
-		new Setting(this.contentEl)
-			.setName("Article Id")
-			.addText((text) =>
-				text.onChange((value) => {
-					articleId = value;
-				}));
 
 		new Setting(this.contentEl)
-			.addButton((btn) =>
+			.setName("Article Id")
+			.addText((text) => {
+				text.onChange((value) => {
+					articleId = value;
+				});
+				text.inputEl.addEventListener("keydown", (event: KeyboardEvent) => {
+					if (event.key === "Enter") {
+						event.preventDefault(); // Prevent the default form submission behavior
+						this.close();
+						onSubmit(articleId); //submit the article for retrieval
+					}
+				}
+				);
+			});
+
+		new Setting(this.contentEl)
+			.addButton((btn) => {
 				btn
 					.setButtonText("Submit")
 					.setCta()
 					.onClick(() => {
 						this.close();
 						onSubmit(articleId);
-					}));
+					})
+			}
+			);
 	}
 }
 
@@ -160,54 +173,52 @@ export default class StackOverflowFBBSync extends Plugin {
 		const requestParameters = { articleId: +articleId, team: this.settings.teamSlug } as TeamsTeamArticlesArticleIdGetRequest;
 		return this.apiClient.teamsTeamArticlesArticleIdGet(requestParameters)
 			.then(async (article: ArticleResponseModel) => {
-				if (article) {
-					const articleFolderName = `${this.settings.teamSlug}`;
-					const articleFileName = `${articleFolderName}/${article.title} - ${article.id}.md`;
+				const articleFolderName = `${this.settings.teamSlug}`;
+				const articleFileName = `${articleFolderName}/${article.title} - ${article.id}.md`;
 
-					this.app.vault.adapter.exists(articleFolderName)
-						.then((subFolderExists: boolean) => {
-							if (!subFolderExists) {
-								this.app.vault.createFolder(articleFolderName)
-							}
-						}).then(() => {
-							this.app.vault.adapter.exists(articleFileName).then((exists: boolean) => {
-								{
-									if (!exists) {
-										this.app.vault.create(articleFileName, '').then((newFile: TFile) => {
-											this.app.workspace.getLeaf().openFile(newFile).then(() => {
-												// TODO: Change this to a small notification
-												console.log("Switched to the new file:", newFile.path);
-
-												//Now fill in the document with the article content
-												this.populateArticleFromArticleResponseModel(newFile, article);
-											}).catch((err) => {
-												console.error("Error switching to the new file:", err);
-											});
-										}).catch((err) => {
-											new DisplayMessageModal(this.app, `Error creating file: ${err}`);
-										});
-									} else {
-										let existingFile = this.app.vault.getFileByPath(articleFileName)!;
-
-										this.app.workspace.getLeaf().openFile(existingFile).then(() => {
+				this.app.vault.adapter.exists(articleFolderName)
+					.then((subFolderExists: boolean) => {
+						if (!subFolderExists) {
+							this.app.vault.createFolder(articleFolderName)
+						}
+					})
+					.then(() => {
+						this.app.vault.adapter.exists(articleFileName).then((exists: boolean) => {
+							{
+								if (!exists) {
+									this.app.vault.create(articleFileName, '').then((newFile: TFile) => {
+										this.app.workspace.getLeaf().openFile(newFile).then(() => {
 											// TODO: Change this to a small notification
-											console.log("Switched to the new file:", existingFile.path);
+											console.log("Switched to the new file:", newFile.path);
 
 											//Now fill in the document with the article content
-											this.populateArticleFromArticleResponseModel(existingFile, article);
+											this.populateArticleFromArticleResponseModel(newFile, article);
 										}).catch((err) => {
 											console.error("Error switching to the new file:", err);
 										});
-									}
-								};
-							});
-						})
-				}
-				else {
-					new Notice('Article not found');
-				}
-			}
-			);
+									}).catch((err) => {
+										new DisplayMessageModal(this.app, `Error creating file: ${err}`);
+									});
+								} else {
+									let existingFile = this.app.vault.getFileByPath(articleFileName)!;
+
+									this.app.workspace.getLeaf().openFile(existingFile).then(() => {
+										// TODO: Change this to a small notification
+										console.log("Switched to the new file:", existingFile.path);
+
+										//Now fill in the document with the article content
+										this.populateArticleFromArticleResponseModel(existingFile, article);
+									}).catch((err) => {
+										console.error("Error switching to the new file:", err);
+									});
+								}
+							}
+						});
+					});
+			})
+			.catch((error: any) => {
+				new DisplayMessageModal(this.app, `Article not found or API is down.`).open();
+			});
 	}
 
 	async saveArticle(): Promise<ArticleResponseModel | boolean | void> {
@@ -237,11 +248,11 @@ export default class StackOverflowFBBSync extends Plugin {
 						articleId: frontmatter.articleId,
 						team: this.settings.teamSlug,
 						articleRequestModel: {
-							title: frontmatter.title,
+							title: frontmatter.title ? frontmatter.title : activeFile.name.substring(0, activeFile.name.indexOf('.')),
 							body: remainderOfContent,
 							bodyMarkdown: remainderOfContent,
-							tags: frontmatter.tags,
-							type: frontmatter.type,
+							tags: frontmatter.tags ?? defaultTagIfNonePresent,
+							type: frontmatter.type ? frontmatter.type : defaultArticleType,
 							permissions: frontmatter.permissions
 						}
 					} as TeamsTeamArticlesArticleIdPutRequest;
@@ -256,7 +267,7 @@ export default class StackOverflowFBBSync extends Plugin {
 							body: remainderOfContent,
 							bodyMarkdown: remainderOfContent,
 							tags: frontmatter.tags ?? defaultTagIfNonePresent,
-							type: frontmatter.type ? frontmatter.type : 'knowledgeArticle',
+							type: frontmatter.type ? frontmatter.type : defaultArticleType,
 							permissions: frontmatter.permissions
 						}
 					} as TeamsTeamArticlesPostRequest;
@@ -364,6 +375,7 @@ class StackOverflowFBBSyncSettingsTab extends PluginSettingTab {
 					this.plugin.settings.PAT = value;
 					await this.plugin.saveSettings();
 				}));
+				
 		new Setting(containerEl)
 			.setName('Team Slug')
 			.setDesc('Find this in the URL of your team page')
