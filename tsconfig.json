@@ -17,11 +17,12 @@
     "outDir": "./dist",
     "noLib": false,
     "lib": [ "es6", "dom" ],
+    "skipLibCheck": true,
+    "noEmitOnError": false
   },
   "exclude": [
     "dist",
-    "node_modules",
-    "generated-api/**/*" // generated API files
+    "node_modules"
   ],
   "filesGlob": [
     "./**/*.ts",

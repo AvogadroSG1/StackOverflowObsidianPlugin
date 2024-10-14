@@ -43,9 +43,9 @@ export interface QuestionRequestModel {
  * Check if a given object implements the QuestionRequestModel interface.
  */
 export function instanceOfQuestionRequestModel(value: object): value is QuestionRequestModel {
-    if (!('title' in value) || value['title'] === undefined) return false;
-    if (!('body' in value) || value['body'] === undefined) return false;
-    if (!('tags' in value) || value['tags'] === undefined) return false;
+    if (!('title' in value) || (value as any)['title'] === undefined) return false;
+    if (!('body' in value) || (value as any)['body'] === undefined) return false;
+    if (!('tags' in value) || (value as any)['tags'] === undefined) return false;
     return true;
 }
 

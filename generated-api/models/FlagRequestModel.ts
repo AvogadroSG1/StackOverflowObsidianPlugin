@@ -49,7 +49,7 @@ export interface FlagRequestModel {
  * Check if a given object implements the FlagRequestModel interface.
  */
 export function instanceOfFlagRequestModel(value: object): value is FlagRequestModel {
-    if (!('optionId' in value) || value['optionId'] === undefined) return false;
+    if (!('optionId' in value) || (value as any)['optionId'] === undefined) return false;
     return true;
 }
 

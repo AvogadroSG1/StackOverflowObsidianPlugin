@@ -31,7 +31,7 @@ export interface AnswerRequestModel {
  * Check if a given object implements the AnswerRequestModel interface.
  */
 export function instanceOfAnswerRequestModel(value: object): value is AnswerRequestModel {
-    if (!('body' in value) || value['body'] === undefined) return false;
+    if (!('body' in value) || (value as any)['body'] === undefined) return false;
     return true;
 }
 
