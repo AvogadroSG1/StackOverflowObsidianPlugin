@@ -43,7 +43,7 @@ export interface UserGroupRequestModel {
  * Check if a given object implements the UserGroupRequestModel interface.
  */
 export function instanceOfUserGroupRequestModel(value: object): value is UserGroupRequestModel {
-    if (!('name' in value) || value['name'] === undefined) return false;
+    if (!('name' in value) || (value as any)['name'] === undefined) return false;
     return true;
 }
 
