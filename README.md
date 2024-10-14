@@ -11,19 +11,23 @@ Integrate your Stack Overflow for Teams instance with Obsidian to seamlessly acc
 ## Installation
 
 1. **Download**: Get the latest release from the [Releases](https://github.com/AvogadroSG1/StackOverflowObsidianPlugin/releases) page.
+   - Download the: `main.js`, `manifest.json`, and the `styles.css` into a folder "StackOverflowObsidianPlugin".
 2. **Install Plugin**:
-   - Extract the release into a folder on your computer.
    - Open Obsidian.
    - Go to **Settings** > **Community plugins**.
-   - Disable **Restricted Mode** if it's enabled.
+   - Click on **Turn on Community plugins**.
    - Click the **folder icon** next to Installed plugins to open the folder where your Obsidian plugins are stored. 
-   - Copy the **extracted plugin** folder into the plugins directory.
-   - Activate the plugin by **clicking the toggle**.
+       - If you **do not have a folder icon**, navigate to your Vault's home folder, then navigate to `.obsidian` (hidden by default), create a `plugins` folder, and navigate to the new folder.
+   - Copy the **extracted plugin** folder into the plugins folder.
 3. **Enable Plugin**:
-   - After installation, click on **Enable** to activate the plugin.
+   - **Restart** Obsidian to see the new plugin.
+   - After installation, click on **Enable Toggle** to activate the plugin.
 
 ## Configuration
 
+1. **Go To Settings**:
+   - Click the **gear icon** next to the plugin in the list.
+   - (or) Find it at the **bottom** of the settings list.
 1. **API Credentials**:
    - Obtain your API key and instance URL from your Stack Overflow for Teams account. [Find more information in their help articles](https://stackoverflowteams.help/en/articles/7913768-stack-overflow-for-teams-api-v3)
 2. **Find Team Slug**:
@@ -44,7 +48,7 @@ Integrate your Stack Overflow for Teams instance with Obsidian to seamlessly acc
   - Make changes to the synced article in Obsidian.
   - Use the command palette to select **"Save Article to {team}"**.
 - **Create New Articles**:
-  - With any Markdown file.
+  - With any Markdown file not already part of your SO4T team.
   - Use the command palette to select **"Save Article to {team}"**.
   - Your file will be converted into a SO4T Article and stored in the {team} directory.
 
