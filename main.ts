@@ -1,12 +1,6 @@
-import { App, ButtonComponent, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+import { App, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import { parse, stringify } from 'yaml';
-import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesArticleIdLinkedQuestionsGetPageSizeEnum, TeamsTeamArticlesPostRequest } from './generated-api'
-
-/**
- * Current figuring out why my modal for the getting the Article ID is not working.
- * 
- * Start with debugging that.
- */
+import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest } from './generated-api'
 
 interface StackOverflowFBBSyncSettings {
 	PAT: string;
@@ -40,7 +34,7 @@ export class GetArticleIdModal extends Modal {
 	constructor(
 		app: App, onSubmit: (result: string) => void) {
 		super(app);
-		this.setTitle("What is the Id of the article you'd like to retrieve?");
+		this.setTitle("Enter the Id of the article you'd like to retrieve?");
 
 		let articleId = '';
 
@@ -83,22 +77,10 @@ export default class StackOverflowFBBSync extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Stack Overflow Teams', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('Sync with FBB');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Stack Overflow for Teams');
-
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
 		this.addCommand({
 			id: 'get-from-so-teams-fbb',
-			name: 'Get Article From Stack Overflow for Teams',
+			name: `Get Article From ${this.settings.teamSlug}`,
 			callback: () => {
 				new GetArticleIdModal(this.app, (articleId: string) => {
 					this.getArticleByID(articleId);
@@ -108,7 +90,7 @@ export default class StackOverflowFBBSync extends Plugin {
 
 		this.addCommand({
 			id: 'sync-to-so-teams-fbb',
-			name: 'Save Article From Stack Overflow for Teams',
+			name: `Save Article To ${this.settings.teamSlug}`,
 			checkCallback: (checking: boolean) => {
 				// Conditions to check
 				if (this.app.workspace.getActiveViewOfType(MarkdownView)) {
@@ -188,27 +170,26 @@ export default class StackOverflowFBBSync extends Plugin {
 								if (!exists) {
 									this.app.vault.create(articleFileName, '').then((newFile: TFile) => {
 										this.app.workspace.getLeaf().openFile(newFile).then(() => {
-											// TODO: Change this to a small notification
-											console.log("Switched to the new file:", newFile.path);
-
+											new Notice(`Switched to the new file: ${newFile.path}`);
 											//Now fill in the document with the article content
 											this.populateArticleFromArticleResponseModel(newFile, article);
 										}).catch((err) => {
+											new Notice("Issue Switching to the new file");
 											console.error("Error switching to the new file:", err);
 										});
 									}).catch((err) => {
-										new DisplayMessageModal(this.app, `Error creating file: ${err}`);
+										new Notice(`Error creating file: ${err}`);
 									});
 								} else {
 									let existingFile = this.app.vault.getFileByPath(articleFileName)!;
 
 									this.app.workspace.getLeaf().openFile(existingFile).then(() => {
-										// TODO: Change this to a small notification
-										console.log("Switched to the new file:", existingFile.path);
+										new Notice(`Switched to the new file: ${existingFile.path}`);
 
 										//Now fill in the document with the article content
 										this.populateArticleFromArticleResponseModel(existingFile, article);
 									}).catch((err) => {
+										new Notice("Issue Switching to the new file");
 										console.error("Error switching to the new file:", err);
 									});
 								}
@@ -217,7 +198,7 @@ export default class StackOverflowFBBSync extends Plugin {
 					});
 			})
 			.catch((error: any) => {
-				new DisplayMessageModal(this.app, `Article not found or API is down.`).open();
+				new Notice(`Article not found or API is down.`);
 			});
 	}
 
@@ -290,7 +271,7 @@ export default class StackOverflowFBBSync extends Plugin {
 		return this.apiClient.teamsTeamArticlesArticleIdPut(article)
 			.then((response) => {
 				const message = `${response.title} updated`;
-				new DisplayMessageModal(this.app, message).open();
+				new Notice(message);
 				return true;
 			})
 			.catch((error: any) => {
@@ -304,11 +285,12 @@ export default class StackOverflowFBBSync extends Plugin {
 		return this.apiClient.teamsTeamArticlesPost(article)
 			.then((response) => {
 				const message = `${response.title} created`;
-				new DisplayMessageModal(this.app, message).open();
+				new Notice(message);
 				return response;
 			})
 			.catch((error: any) => {
 				// Handle the error if needed
+				new Notice(`Error syncing with Stack Overflow for Teams: ${this.settings.teamSlug}`);
 				console.error('Error saving article:', error);
 				return null;
 			});
@@ -375,7 +357,7 @@ class StackOverflowFBBSyncSettingsTab extends PluginSettingTab {
 					this.plugin.settings.PAT = value;
 					await this.plugin.saveSettings();
 				}));
-				
+
 		new Setting(containerEl)
 			.setName('Team Slug')
 			.setDesc('Find this in the URL of your team page')
