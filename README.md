@@ -4,9 +4,9 @@ Integrate your Stack Overflow for Teams instance with Obsidian to seamlessly acc
 
 ## Features
 
-- **Article Synchronization**: Sync articles from your Stack Overflow for Teams directly into Obsidian.
-- **In Your Workflow**: Search for articles and insert them into your notes without leaving Obsidian.
+- **Article Retrieval**: Get articles from your Stack Overflow for Teams directly into Obsidian.
 - **Edit and Publish**: Edit articles within Obsidian and publish them back to your Stack Overflow for Teams instance.
+- **Create New Articles**: Take any Markdown file you write, and save it to Stack Overflow for Teams.
 
 ## Installation
 
@@ -26,21 +26,28 @@ Integrate your Stack Overflow for Teams instance with Obsidian to seamlessly acc
 
 1. **API Credentials**:
    - Obtain your API key and instance URL from your Stack Overflow for Teams account. [Find more information in their help articles](https://stackoverflowteams.help/en/articles/7913768-stack-overflow-for-teams-api-v3)
-2. **Set Up in Obsidian**:
+2. **Find Team Slug**:
+   - Go to your Stack Overflow for Teams instance.
+   - Find your Team Slug after the "c/" in https://stackoverflowteams.com/c/{team_slug}.
+3. **Set Up in Obsidian**:
    - Go to **Settings** > **Plugin Options** > **Stack Overflow for Teams**.
    - Enter your **API Key** and **Instance URL**.
+   - Enter your **Team Slug**.
    - Save the settings.
 
 ## Usage
 
-- **Sync Articles**:
-  - Use the command palette (`Ctrl+P` or `Cmd+P`) and select **"Sync Stack Overflow Articles"**.
-- **Search and Insert**:
-  - Open the command palette and select **"Search Stack Overflow Articles"**.
-  - Search for the desired article and insert it into your current note.
+- **Retrieval**:
+  - Use the command palette (`Ctrl+P` or `Cmd+P`) and select **"Get Article From {team}"**.
+  - Article will be stored in the subdirectory of the team.
 - **Edit and Publish**:
   - Make changes to the synced article in Obsidian.
-  - Use the command palette to select **"Publish Article to Stack Overflow"**.
+  - Use the command palette to select **"Save Article to {team}"**.
+- **Create New Articles**:
+  - With any Markdown file.
+  - Use the command palette to select **"Save Article to {team}"**.
+  - Your file will be converted into a SO4T Article and stored in the {team} directory.
+
 
 ## Contributing
 
