@@ -1,6 +1,6 @@
 import { App, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import { parse, stringify } from 'yaml';
-import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest } from './generated-api'
+import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest, ArticlePermissionsResponseModel, ArticlePermissionsRequestModel } from './generated-api'
 
 interface StackOverflowFBBSyncSettings {
 	PAT: string;
@@ -220,7 +220,7 @@ export default class StackOverflowFBBSync extends Plugin {
 				let frontmatter: any = {};
 				let remainderOfContent = fileContent.replace(frontmatterRegex, '').trim();;
 				if (frontmatterMatch) {
-					// Parse the existing frontmatter
+					// Parse the existing frontmatter, I hate this being any.
 					frontmatter = parse(frontmatterMatch[1]);
 				}
 
@@ -321,7 +321,7 @@ export default class StackOverflowFBBSync extends Plugin {
 		frontmatter['userHasUpvoted'] = article.userHasUpvoted;
 		frontmatter['userHasDownvoted'] = article.userHasDownvoted;
 		frontmatter['userCanEdit'] = article.userCanEdit;
-		frontmatter['permissions'] = article.permissions;
+		frontmatter['permissions'] = article.permissions ? this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(article.permissions) : null;
 
 		// Convert the updated frontmatter back to YAML
 		const updatedFrontmatter = stringify(frontmatter);
@@ -332,6 +332,15 @@ export default class StackOverflowFBBSync extends Plugin {
 		// Write the updated content back to the file
 		this.app.vault.modify(activeFile, newContent);
 	}
+	
+	private convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(permissions: ArticlePermissionsResponseModel) : ArticlePermissionsRequestModel {
+		return {
+			editableBy: permissions.editableBy,
+			editorUserIds: permissions.editorUsers?.map(user => user.id!),
+			editorUserGroupIds: permissions.editorUserGroups?.map(userGroup => userGroup.id!)
+		}
+	}
+
 }
 
 class StackOverflowFBBSyncSettingsTab extends PluginSettingTab {
