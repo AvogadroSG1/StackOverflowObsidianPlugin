@@ -2,6 +2,10 @@
 
 Integrate your Stack Overflow for Teams instance with Obsidian to seamlessly access and manage your articles within your notes.
 
+## Disclaimer
+
+I have only put a handful of hours into the plugin to verify my proof of concept as a very minimal MVP.  I'd like to go much further with this, starting with a major refactor to include testing.  Contributions are welcome!
+
 ## Features
 
 - **Article Retrieval**: Get articles from your Stack Overflow for Teams directly into Obsidian.
