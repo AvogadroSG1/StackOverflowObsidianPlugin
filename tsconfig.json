@@ -18,7 +18,8 @@
     "noLib": false,
     "lib": [ "es6", "dom" ],
     "skipLibCheck": true,
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "noImplicitAny": true
   },
   "exclude": [
     "dist",
