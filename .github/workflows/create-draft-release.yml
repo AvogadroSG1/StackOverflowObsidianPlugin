@@ -1,0 +1,111 @@
+name: Create Release on Merge with Label
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  create-release:
+    if: ${{ github.event.pull_request.merged && contains(github.event.pull_request.labels.*.name, 'create-release') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+              node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "::set-output name=tag::$TAG"
+
+      - name: Determine next version
+        id: next_version
+        run: |
+          # If no tags are found, start with version 0.0.0
+          if [ -z "${{ steps.get_latest_tag.outputs.tag }}" ]; then
+            echo "No tags found. Setting initial version to 0.0.0"
+            echo "::set-output name=major::0"
+            echo "::set-output name=minor::0"
+            echo "::set-output name=patch::0"
+          else
+            echo "Latest tag: ${{ steps.get_latest_tag.outputs.tag }}"
+            VERSION=${{ steps.get_latest_tag.outputs.tag }}
+            VERSION=${VERSION#"v"}
+            IFS='.' read -r major minor patch <<< "$VERSION"
+            echo "::set-output name=major::$major"
+            echo "::set-output name=minor::$minor"
+            echo "::set-output name=patch::$patch"
+          fi
+
+          # Determine version bump
+          MAJOR_BUMP=false
+          MINOR_BUMP=false
+          PATCH_BUMP=false
+
+          for label in "${{ github.event.pull_request.labels.*.name }}"; do
+            if [ "$label" == "major" ]; then
+              MAJOR_BUMP=true
+            elif [ "$label" == "minor" ]; then
+              MINOR_BUMP=true
+            elif [ "$label" == "patch" ]; then
+              PATCH_BUMP=true
+            fi
+          done
+
+          # Default to patch bump if no semver labels are found
+          if [ "$MAJOR_BUMP" == "false" ] && [ "$MINOR_BUMP" == "false" ] && [ "$PATCH_BUMP" == "false" ]; then
+            PATCH_BUMP=true
+          fi
+
+          # Increment version
+          if [ "$MAJOR_BUMP" == "true" ]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [ "$MINOR_BUMP" == "true" ]; then
+            minor=$((minor + 1))
+            patch=0
+          elif [ "$PATCH_BUMP" == "true" ]; then
+            patch=$((patch + 1))
+          fi
+
+          NEXT_VERSION="v$major.$minor.$patch"
+          echo "Next version: $NEXT_VERSION"
+          echo "::set-output name=next_version::$NEXT_VERSION"
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Create tag
+        run: |
+          git tag -a "${{ steps.next_version.outputs.next_version }}" -m "Release ${{ steps.next_version.outputs.next_version }}"
+          git push origin "${{ steps.next_version.outputs.next_version }}"
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "${{ steps.next_version.outputs.next_version }}"
+          draft: true
+          name: "Release ${{ steps.next_version.outputs.next_version }}"
+          body: |
+            **Changes in this release:**
+
+            ${{ github.event.pull_request.body }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
