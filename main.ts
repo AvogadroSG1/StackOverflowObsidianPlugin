@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS: StackOverflowFBBSyncSettings = {
 	teamSlug: ""
 }
 
-let configuration = new Configuration({
+const configuration = new Configuration({
 	basePath: 'https://api.stackoverflowteams.com/v3',
 	headers: {
 		'accept': 'application/json',
@@ -106,15 +106,6 @@ export default class StackOverflowFBBSync extends Plugin {
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new StackOverflowFBBSyncSettingsTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
 	async onunload() {
@@ -181,23 +172,26 @@ export default class StackOverflowFBBSync extends Plugin {
 										new Notice(`Error creating file: ${err}`);
 									});
 								} else {
-									let existingFile = this.app.vault.getFileByPath(articleFileName)!;
+									const existingFile = this.app.vault.getFileByPath(articleFileName);
 
-									this.app.workspace.getLeaf().openFile(existingFile).then(() => {
-										new Notice(`Switched to the new file: ${existingFile.path}`);
+									if (existingFile) {
+										this.app.workspace.getLeaf().openFile(existingFile).then(() => {
+											new Notice(`Switched to the new file: ${existingFile.path}`);
 
-										//Now fill in the document with the article content
-										this.populateArticleFromArticleResponseModel(existingFile, article);
-									}).catch((err) => {
-										new Notice("Issue Switching to the new file");
-										console.error("Error switching to the new file:", err);
-									});
+											//Now fill in the document with the article content
+											this.populateArticleFromArticleResponseModel(existingFile, article);
+										}).catch((err) => {
+											new Notice("Issue Switching to the new file");
+											console.error("Error switching to the new file:", err);
+										});
+									}
+
 								}
 							}
 						});
 					});
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				new Notice(`Article not found or API is down.`);
 			});
 	}
@@ -211,14 +205,14 @@ export default class StackOverflowFBBSync extends Plugin {
 
 		return this.app.vault.cachedRead(activeFile)
 			.then((content: string) => {
-				let fileContent = content;
+				const fileContent = content;
 
 				// Extract frontmatter block (YAML block) if exists
 				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
 				const frontmatterMatch = fileContent.match(frontmatterRegex);
 
 				let frontmatter: any = {};
-				let remainderOfContent = fileContent.replace(frontmatterRegex, '').trim();;
+				const remainderOfContent = fileContent.replace(frontmatterRegex, '').trim();
 				if (frontmatterMatch) {
 					// Parse the existing frontmatter, I hate this being any.
 					frontmatter = parse(frontmatterMatch[1]);
@@ -297,7 +291,7 @@ export default class StackOverflowFBBSync extends Plugin {
 	}
 
 	private async populateArticleFromArticleResponseModel(activeFile: TFile, article: ArticleResponseModel): Promise<void> {
-		let frontmatter: any = {};
+		const frontmatter: any = {};
 
 		// Add or update the property
 		frontmatter['articleId'] = article.id;
@@ -332,8 +326,8 @@ export default class StackOverflowFBBSync extends Plugin {
 		// Write the updated content back to the file
 		this.app.vault.modify(activeFile, newContent);
 	}
-	
-	private convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(permissions: ArticlePermissionsResponseModel) : ArticlePermissionsRequestModel {
+
+	private convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(permissions: ArticlePermissionsResponseModel): ArticlePermissionsRequestModel {
 		return {
 			editableBy: permissions.editableBy,
 			editorUserIds: permissions.editorUsers?.map(user => user.id!),
@@ -358,7 +352,7 @@ class StackOverflowFBBSyncSettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('API Key')
-			.setDesc('Generate this token from \"Account Settings\"--> Personal Access Tokens')
+			.setDesc('Generate this token from "Account Settings"--> Personal Access Tokens')
 			.addText(text => text
 				.setPlaceholder('Enter your secret')
 				.setValue(this.plugin.settings.PAT)
