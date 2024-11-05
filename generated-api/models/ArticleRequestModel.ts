@@ -70,7 +70,7 @@ export interface ArticleRequestModel {
  * Check if a given object implements the ArticleRequestModel interface.
  */
 export function instanceOfArticleRequestModel(value: object): value is ArticleRequestModel {
-    if (!('title' in value) || value.title === undefined) return false;
+    if (!('title' in value) || (('title' in value) && value.title === undefined)) return false;
     if (!('body' in value) || value.body === undefined) return false;
     if (!('tags' in value) || value.tags === undefined) return false;
     if (!('type' in value) || value.type === undefined) return false;
