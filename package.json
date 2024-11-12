@@ -1,6 +1,6 @@
 {
 	"name": "stackoverflow-for-teams",
-	"version": "1.0.0",
+	"version": "1.0.4",
 	"description": "This is the Stack Overflow For Teams plugin for Obsidian.",
 	"main": "main.js",
 	"scripts": {
