@@ -1,6 +1,7 @@
-import { App, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+import { App, FileManager, getFrontMatterInfo, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import { parse, stringify } from 'yaml';
 import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest, ArticlePermissionsResponseModel, ArticlePermissionsRequestModel } from './generated-api'
+import { FileFunctions } from './generated-api/FileFunctions/FileFunctions';
 
 interface StackOverflowFBBSyncSettings {
 	PAT: string;
@@ -9,7 +10,7 @@ interface StackOverflowFBBSyncSettings {
 
 const DEFAULT_SETTINGS: StackOverflowFBBSyncSettings = {
 	PAT: 'default',
-	teamSlug: ""
+	teamSlug: ''
 }
 
 const configuration = new Configuration({
@@ -74,6 +75,10 @@ export default class StackOverflowFBBSync extends Plugin {
 
 	apiClient = new ArticlesApi(configuration);
 
+	fileFunctions = new FileFunctions(this.app);
+
+	fileManager = new FileManager();
+	
 	async onload() {
 		await this.loadSettings();
 
@@ -156,43 +161,32 @@ export default class StackOverflowFBBSync extends Plugin {
 						}
 					})
 					.then(() => {
-						this.app.vault.adapter.exists(articleFileName).then((exists: boolean) => {
-							{
-								if (!exists) {
-									this.app.vault.create(articleFileName, '').then((newFile: TFile) => {
-										this.app.workspace.getLeaf().openFile(newFile).then(() => {
-											new Notice(`Switched to the new file: ${newFile.path}`);
-											//Now fill in the document with the article content
-											this.populateArticleFromArticleResponseModel(newFile, article);
+						this.fileFunctions.getOrCreateFile(articleFileName)
+							.then((file: TFile) => {
+								let fileOpenPromise = Promise.resolve();
+
+								if (this.app.workspace.getActiveFile()?.path !== file.path) {
+									fileOpenPromise = this.app.workspace.getLeaf().openFile(file)
+										.then(() => {
+											new Notice(`Switched to the new file: ${file.path}`);
 										}).catch((err) => {
 											new Notice("Issue Switching to the new file");
 											console.error("Error switching to the new file:", err);
 										});
-									}).catch((err) => {
-										new Notice(`Error creating file: ${err}`);
-									});
-								} else {
-									const existingFile = this.app.vault.getFileByPath(articleFileName);
-
-									if (existingFile) {
-										this.app.workspace.getLeaf().openFile(existingFile).then(() => {
-											new Notice(`Switched to the new file: ${existingFile.path}`);
-
-											//Now fill in the document with the article content
-											this.populateArticleFromArticleResponseModel(existingFile, article);
-										}).catch((err) => {
-											new Notice("Issue Switching to the new file");
-											console.error("Error switching to the new file:", err);
-										});
-									}
-
 								}
-							}
-						});
+
+								//Now fill in the document with the article content
+								fileOpenPromise
+									.then(() => {
+										this.populateArticleFromArticleResponseModel(file, article);
+									});
+							})
+							.catch((err) => {
+								new Notice(`Error creating file: ${err}`);
+							});
 					});
-			})
-			.catch((error) => {
-				new Notice(`Article not found or API is down.`);
+			}).catch((error) => {
+				new Notice(`Article not found or API is down ${error}.`);
 			});
 	}
 
@@ -200,52 +194,24 @@ export default class StackOverflowFBBSync extends Plugin {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) {
 			new Notice('No active file found');
-			return Promise.resolve(false);
+			return false;
 		}
 
-		return this.app.vault.cachedRead(activeFile)
+		return this.app.vault.read(activeFile)
 			.then((content: string) => {
-				const fileContent = content;
 
-				// Extract frontmatter block (YAML block) if exists
-				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-				const frontmatterMatch = fileContent.match(frontmatterRegex);
+				const frontMatterInfo = getFrontMatterInfo(content);
+				const frontmatter = parse(frontMatterInfo.frontmatter);
 
-				let frontmatter: any = {};
-				const remainderOfContent = fileContent.replace(frontmatterRegex, '').trim();
-				if (frontmatterMatch) {
-					// Parse the existing frontmatter, I hate this being any.
-					frontmatter = parse(frontmatterMatch[1]);
-				}
+				const remainderOfContent = content.slice(frontMatterInfo.contentStart);
 
 				if (frontmatter.articleId) {
-					const updadateModel = {
-						articleId: frontmatter.articleId,
-						team: this.settings.teamSlug,
-						articleRequestModel: {
-							title: frontmatter.title ? frontmatter.title : activeFile.name.substring(0, activeFile.name.indexOf('.')),
-							body: remainderOfContent,
-							bodyMarkdown: remainderOfContent,
-							tags: frontmatter.tags ?? defaultTagIfNonePresent,
-							type: frontmatter.type ? frontmatter.type : defaultArticleType,
-							permissions: frontmatter.permissions
-						}
-					} as TeamsTeamArticlesArticleIdPutRequest;
+					const updadateModel = this.convertArticleToUpdateModel(activeFile.name, remainderOfContent, frontmatter);
 
 					return this.updateArticle(updadateModel);
 				}
 				else {
-					const createModel = {
-						team: this.settings.teamSlug,
-						articleRequestModel: {
-							title: frontmatter.title ? frontmatter.title : activeFile.name.substring(0, activeFile.name.indexOf('.')),
-							body: remainderOfContent,
-							bodyMarkdown: remainderOfContent,
-							tags: frontmatter.tags ?? defaultTagIfNonePresent,
-							type: frontmatter.type ? frontmatter.type : defaultArticleType,
-							permissions: frontmatter.permissions
-						}
-					} as TeamsTeamArticlesPostRequest;
+					const createModel = this.convertArticleToCreateModel(activeFile.name, remainderOfContent, frontmatter);
 
 					return this.createArticle(createModel)
 						.then((response) => {
@@ -333,6 +299,36 @@ export default class StackOverflowFBBSync extends Plugin {
 			editorUserIds: permissions.editorUsers?.map(user => user.id!),
 			editorUserGroupIds: permissions.editorUserGroups?.map(userGroup => userGroup.id!)
 		}
+	}
+
+	private convertArticleToUpdateModel(activeFileName: string, content: string, frontmatter: any) : TeamsTeamArticlesArticleIdPutRequest
+	{
+		return {
+			articleId: frontmatter.articleId,
+			team: this.settings.teamSlug,
+			articleRequestModel: {
+				title: frontmatter.title ? frontmatter.title : activeFileName.substring(0, activeFileName.indexOf('.')),
+				body: content,
+				bodyMarkdown: content,
+				tags: frontmatter.tags ?? defaultTagIfNonePresent,
+				type: frontmatter.type ? frontmatter.type : defaultArticleType,
+				permissions: frontmatter.permissions
+			}
+		} as TeamsTeamArticlesArticleIdPutRequest
+	}
+
+	private convertArticleToCreateModel(activeFileName: string, content: string, frontmatter: any) : TeamsTeamArticlesPostRequest {
+		return {
+			team: this.settings.teamSlug,
+			articleRequestModel: {
+				title: frontmatter.title ? frontmatter.title : activeFileName.substring(0, activeFileName.indexOf('.')),
+				body: content,
+				bodyMarkdown: content,
+				tags: frontmatter.tags ?? defaultTagIfNonePresent,
+				type: frontmatter.type ? frontmatter.type : defaultArticleType,
+				permissions: frontmatter.permissions
+			}
+		} as TeamsTeamArticlesPostRequest;
 	}
 
 }
