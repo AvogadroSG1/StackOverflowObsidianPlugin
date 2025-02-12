@@ -78,7 +78,7 @@ export default class StackOverflowFBBSync extends Plugin {
 	apiClient = new ArticlesApi(configuration);
 
 	fileFunctions = new FileFunctions(this.app);
-	
+
 	async onload() {
 		await this.loadSettings();
 
@@ -147,47 +147,44 @@ export default class StackOverflowFBBSync extends Plugin {
 		}));
 	}
 
-	getArticleByID(articleId: string): Promise<void | ArticleResponseModel> {
+	async getArticleByID(articleId: string): Promise<void | ArticleResponseModel> {
 		const requestParameters = { articleId: +articleId, team: this.settings.teamSlug } as TeamsTeamArticlesArticleIdGetRequest;
-		return this.apiClient.teamsTeamArticlesArticleIdGet(requestParameters)
-			.then(async (article: ArticleResponseModel) => {
-				const articleFolderName = `${this.settings.teamSlug}`;
-				const articleFileName = `${articleFolderName}/${article.title} - ${article.id}.md`;
+		try {
+			const article = await this.apiClient.teamsTeamArticlesArticleIdGet(requestParameters);
 
-				this.app.vault.adapter.exists(articleFolderName)
-					.then((subFolderExists: boolean) => {
-						if (!subFolderExists) {
-							this.app.vault.createFolder(articleFolderName)
-						}
-					})
-					.then(() => {
-						this.fileFunctions.getOrCreateFile(articleFileName)
-							.then((file: TFile) => {
-								let fileOpenPromise = Promise.resolve();
+			const articleFolderName = `${this.settings.teamSlug}`;
+			const articleFileName = `${articleFolderName}/${article.title} - ${article.id}.md`;
 
-								if (this.app.workspace.getActiveFile()?.path !== file.path) {
-									fileOpenPromise = this.app.workspace.getLeaf().openFile(file)
-										.then(() => {
-											new Notice(`Switched to the new file: ${file.path}`);
-										}).catch((err) => {
-											new Notice("Issue Switching to the new file");
-											console.error("Error switching to the new file:", err);
-										});
-								}
+			const subFolder = await this.app.vault.getFolderByPath(articleFolderName);
 
-								//Now fill in the document with the article content
-								fileOpenPromise
-									.then(() => {
-										this.populateArticleFromArticleResponseModel(file, article);
-									});
-							})
-							.catch((err) => {
-								new Notice(`Error creating file: ${err}`);
-							});
-					});
-			}).catch((error) => {
-				new Notice(`Article not found or API is down ${error}.`);
-			});
+			if (!subFolder) {
+				this.app.vault.createFolder(articleFolderName);
+			}
+
+			try {
+				const file = await this.fileFunctions.getOrCreateFile(articleFileName);
+
+				if (this.app.workspace.getActiveFile()?.path !== file.path) {
+					try {
+						await this.app.workspace.getLeaf().openFile(file);
+						new Notice(`Switched to the new file: ${file.path}`);
+					}
+					catch (err) {
+						new Notice("Issue Switching to the new file");
+						console.error("Error switching to the new file:", err);
+					}
+				}
+
+				//Now fill in the document with the article content
+				await this.populateArticleFromArticleResponseModel(file, article);
+			}
+			catch (err) {
+				new Notice(`Error creating file: ${err}`);
+			}
+		}
+		catch (error: any) {
+			new Notice(`Article not found or API is down ${error}.`);
+		}
 	}
 
 	async saveArticle(): Promise<ArticleResponseModel | boolean | void> {
@@ -197,64 +194,59 @@ export default class StackOverflowFBBSync extends Plugin {
 			return false;
 		}
 
-		return this.app.vault.read(activeFile)
-			.then((content: string) => {
+		const content = await this.app.vault.read(activeFile);
 
-				const frontMatterInfo = getFrontMatterInfo(content);
-				
-				const frontmatter = new ArticleFrontMatterModel(parse(frontMatterInfo.frontmatter) as ArticleFrontMatterModel);
+		const frontMatterInfo = getFrontMatterInfo(content);
 
-				const remainderOfContent = content.slice(frontMatterInfo.contentStart);
+		const frontmatter = new ArticleFrontMatterModel(parse(frontMatterInfo.frontmatter) as ArticleFrontMatterModel);
 
-				if (frontmatter.articleId || frontmatter.id) {
-					const updadateModel = this.convertArticleToUpdateModel(activeFile.name, remainderOfContent, frontmatter);
+		const remainderOfContent = content.slice(frontMatterInfo.contentStart);
 
-					return this.updateArticle(updadateModel);
-				}
-				else {
-					const createModel = this.convertArticleToCreateModel(activeFile.name, remainderOfContent, frontmatter);
+		if (frontmatter.articleId || frontmatter.id) {
+			const updadateModel = this.convertArticleToUpdateModel(activeFile.name, remainderOfContent, frontmatter);
 
-					return this.createArticle(createModel)
-						.then((response) => {
-							if (response) {
-								response.bodyMarkdown ??= remainderOfContent.trim();
-								this.populateArticleFromArticleResponseModel(activeFile, response as ArticleResponseModel).then(() => {
-									activeFile.vault.rename(activeFile, `${this.settings.teamSlug}/${response.title} - ${response.id}.md`);
-								});
-							}
-						}
-						);
-				}
-			});
+			return await this.updateArticle(updadateModel);
+		}
+		else {
+			const createModel = this.convertArticleToCreateModel(activeFile.name, remainderOfContent, frontmatter);
+
+			const response = await this.createArticle(createModel);
+			if (response) {
+				response.bodyMarkdown ??= remainderOfContent.trim();
+				await this.populateArticleFromArticleResponseModel(activeFile, response as ArticleResponseModel)
+				await activeFile.vault.rename(activeFile, `${this.settings.teamSlug}/${response.title} - ${response.id}.md`);
+			}
+		}
 	}
 
-	private async updateArticle(article: TeamsTeamArticlesArticleIdPutRequest) {
-		return this.apiClient.teamsTeamArticlesArticleIdPut(article)
-			.then((response) => {
-				const message = `${response.title} updated`;
-				new Notice(message);
-				return true;
-			})
-			.catch((error: any) => {
-				// Handle the error if needed
-				console.error('Error saving article:', error);
-				return false;
-			});
+	private async updateArticle(article: TeamsTeamArticlesArticleIdPutRequest): Promise<boolean> {
+		try {
+			const response = await this.apiClient.teamsTeamArticlesArticleIdPut(article)
+			const message = `${response.title} updated`;
+
+			new Notice(message);
+			return true;
+		}
+		catch (error: any) {
+			// Handle the error if needed
+			console.error('Error saving article:', error);
+			return false;
+		}
 	}
 
-	private async createArticle(article: TeamsTeamArticlesPostRequest) {
-		return this.apiClient.teamsTeamArticlesPost(article)
-			.then((response) => {
-				const message = `${response.title} created`;
-				new Notice(message);
-				return response;
-			})
-			.catch((error: any) => {
-				// Handle the error if needed
-				new Notice(`Error syncing with Stack Overflow for Teams: ${this.settings.teamSlug}`);
-				console.error('Error saving article:', error);
-				return null;
-			});
+	private async createArticle(article: TeamsTeamArticlesPostRequest): Promise<ArticleResponseModel | null> {
+		try {
+			const response = await this.apiClient.teamsTeamArticlesPost(article);
+			const message = `${response.title} created`;
+			new Notice(message);
+			return response;
+		}
+		catch (error: any) {
+			// Handle the error if needed
+			new Notice(`Error syncing with Stack Overflow for Teams: ${this.settings.teamSlug}`);
+			console.error('Error saving article:', error);
+			return null;
+		}
 	}
 
 	private async populateArticleFromArticleResponseModel(activeFile: TFile, article: ArticleResponseModel): Promise<void> {
@@ -290,7 +282,7 @@ export default class StackOverflowFBBSync extends Plugin {
 		const newContent = `---\n${updatedFrontmatter}---\n\n${article.bodyMarkdown}`;
 
 		// Write the updated content back to the file
-		this.app.vault.modify(activeFile, newContent);
+		await this.app.vault.modify(activeFile, newContent);
 	}
 
 	private convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(permissions: ArticlePermissionsResponseModel): ArticlePermissionsRequestModel {
@@ -301,8 +293,7 @@ export default class StackOverflowFBBSync extends Plugin {
 		}
 	}
 
-	private convertArticleToUpdateModel(activeFileName: string, content: string, frontmatter: ArticleFrontMatterModel) : TeamsTeamArticlesArticleIdPutRequest
-	{
+	private convertArticleToUpdateModel(activeFileName: string, content: string, frontmatter: ArticleFrontMatterModel): TeamsTeamArticlesArticleIdPutRequest {
 		return {
 			articleId: frontmatter.articleId,
 			team: this.settings.teamSlug,
@@ -317,7 +308,7 @@ export default class StackOverflowFBBSync extends Plugin {
 		} as TeamsTeamArticlesArticleIdPutRequest
 	}
 
-	private convertArticleToCreateModel(activeFileName: string, content: string, frontmatter: ArticleFrontMatterModel) : TeamsTeamArticlesPostRequest {
+	private convertArticleToCreateModel(activeFileName: string, content: string, frontmatter: ArticleFrontMatterModel): TeamsTeamArticlesPostRequest {
 		return {
 			team: this.settings.teamSlug,
 			articleRequestModel: {
