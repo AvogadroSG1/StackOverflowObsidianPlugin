@@ -2,7 +2,7 @@ import { App, FileManager, getFrontMatterInfo, MarkdownView, Modal, Notice, Plug
 import { parse, stringify } from 'yaml';
 import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest, ArticlePermissionsResponseModel, ArticlePermissionsRequestModel } from './generated-api'
 import { FileFunctions } from './generated-api/FileFunctions/FileFunctions';
-import { ArticleFrontMatterModel } from './generated-api/models/GenericModels/ArticleModel';
+import { ArticleFrontMatterModel } from './generated-api/models/GenericModels/ArticleFrontMatterModel';
 
 interface StackOverflowFBBSyncSettings {
 	PAT: string;
@@ -202,6 +202,7 @@ export default class StackOverflowFBBSync extends Plugin {
 			.then((content: string) => {
 
 				const frontMatterInfo = getFrontMatterInfo(content);
+				//TOO: This could be an ArticleFrontMatterModel
 				const frontmatter = parse(frontMatterInfo.frontmatter);
 
 				const remainderOfContent = content.slice(frontMatterInfo.contentStart);
