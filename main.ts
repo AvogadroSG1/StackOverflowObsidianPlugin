@@ -1,6 +1,9 @@
-import { App, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { App, getFrontMatterInfo, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import { parse, stringify } from 'yaml';
 import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest, ArticlePermissionsResponseModel, ArticlePermissionsRequestModel } from './generated-api'
+import { FileFunctions } from './generated-api/FileFunctions/FileFunctions';
+import { ArticleFrontMatterModel } from './generated-api/models/GenericModels/ArticleFrontMatterModel';
 
 interface StackOverflowFBBSyncSettings {
 	PAT: string;
@@ -9,7 +12,7 @@ interface StackOverflowFBBSyncSettings {
 
 const DEFAULT_SETTINGS: StackOverflowFBBSyncSettings = {
 	PAT: 'default',
-	teamSlug: ""
+	teamSlug: ''
 }
 
 const configuration = new Configuration({
@@ -73,6 +76,8 @@ export default class StackOverflowFBBSync extends Plugin {
 	settings: StackOverflowFBBSyncSettings = DEFAULT_SETTINGS;
 
 	apiClient = new ArticlesApi(configuration);
+
+	fileFunctions = new FileFunctions(this.app);
 
 	async onload() {
 		await this.loadSettings();
@@ -142,189 +147,142 @@ export default class StackOverflowFBBSync extends Plugin {
 		}));
 	}
 
-	getArticleByID(articleId: string): Promise<void | ArticleResponseModel> {
+	async getArticleByID(articleId: string): Promise<void | ArticleResponseModel> {
 		const requestParameters = { articleId: +articleId, team: this.settings.teamSlug } as TeamsTeamArticlesArticleIdGetRequest;
-		return this.apiClient.teamsTeamArticlesArticleIdGet(requestParameters)
-			.then(async (article: ArticleResponseModel) => {
-				const articleFolderName = `${this.settings.teamSlug}`;
-				const articleFileName = `${articleFolderName}/${article.title} - ${article.id}.md`;
+		try {
+			const article = await this.apiClient.teamsTeamArticlesArticleIdGet(requestParameters);
 
-				this.app.vault.adapter.exists(articleFolderName)
-					.then((subFolderExists: boolean) => {
-						if (!subFolderExists) {
-							this.app.vault.createFolder(articleFolderName)
-						}
-					})
-					.then(() => {
-						this.app.vault.adapter.exists(articleFileName).then((exists: boolean) => {
-							{
-								if (!exists) {
-									this.app.vault.create(articleFileName, '').then((newFile: TFile) => {
-										this.app.workspace.getLeaf().openFile(newFile).then(() => {
-											new Notice(`Switched to the new file: ${newFile.path}`);
-											//Now fill in the document with the article content
-											this.populateArticleFromArticleResponseModel(newFile, article);
-										}).catch((err) => {
-											new Notice("Issue Switching to the new file");
-											console.error("Error switching to the new file:", err);
-										});
-									}).catch((err) => {
-										new Notice(`Error creating file: ${err}`);
-									});
-								} else {
-									const existingFile = this.app.vault.getFileByPath(articleFileName);
+			const articleFolderName = `${this.settings.teamSlug}`;
+			const articleFileName = `${articleFolderName}/${article.title} - ${article.id}.md`;
 
-									if (existingFile) {
-										this.app.workspace.getLeaf().openFile(existingFile).then(() => {
-											new Notice(`Switched to the new file: ${existingFile.path}`);
+			const subFolder = await this.app.vault.getFolderByPath(articleFolderName);
 
-											//Now fill in the document with the article content
-											this.populateArticleFromArticleResponseModel(existingFile, article);
-										}).catch((err) => {
-											new Notice("Issue Switching to the new file");
-											console.error("Error switching to the new file:", err);
-										});
-									}
+			if (!subFolder) {
+				this.app.vault.createFolder(articleFolderName);
+			}
 
-								}
-							}
-						});
-					});
-			})
-			.catch((error) => {
-				new Notice(`Article not found or API is down.`);
-			});
+			try {
+				const file = await this.fileFunctions.getOrCreateFile(articleFileName);
+
+				if (this.app.workspace.getActiveFile()?.path !== file.path) {
+					try {
+						await this.app.workspace.getLeaf().openFile(file);
+						new Notice(`Switched to the new file: ${file.path}`);
+					}
+					catch (err) {
+						new Notice("Issue Switching to the new file");
+						console.error("Error switching to the new file:", err);
+					}
+				}
+
+				//Now fill in the document with the article content
+				await this.populateArticleFromArticleResponseModel(file, article);
+			}
+			catch (err) {
+				new Notice(`Error creating file: ${err}`);
+			}
+		}
+		catch (error: any) {
+			new Notice(`Article not found or API is down ${error}.`);
+		}
 	}
 
 	async saveArticle(): Promise<ArticleResponseModel | boolean | void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) {
 			new Notice('No active file found');
-			return Promise.resolve(false);
+			return false;
 		}
 
-		return this.app.vault.cachedRead(activeFile)
-			.then((content: string) => {
-				const fileContent = content;
+		const content = await this.app.vault.read(activeFile);
 
-				// Extract frontmatter block (YAML block) if exists
-				const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-				const frontmatterMatch = fileContent.match(frontmatterRegex);
+		const frontMatterInfo = getFrontMatterInfo(content);
 
-				let frontmatter: any = {};
-				const remainderOfContent = fileContent.replace(frontmatterRegex, '').trim();
-				if (frontmatterMatch) {
-					// Parse the existing frontmatter, I hate this being any.
-					frontmatter = parse(frontmatterMatch[1]);
-				}
+		const frontmatter = new ArticleFrontMatterModel(parse(frontMatterInfo.frontmatter) as ArticleFrontMatterModel);
 
-				if (frontmatter.articleId) {
-					const updadateModel = {
-						articleId: frontmatter.articleId,
-						team: this.settings.teamSlug,
-						articleRequestModel: {
-							title: frontmatter.title ? frontmatter.title : activeFile.name.substring(0, activeFile.name.indexOf('.')),
-							body: remainderOfContent,
-							bodyMarkdown: remainderOfContent,
-							tags: frontmatter.tags ?? defaultTagIfNonePresent,
-							type: frontmatter.type ? frontmatter.type : defaultArticleType,
-							permissions: frontmatter.permissions
-						}
-					} as TeamsTeamArticlesArticleIdPutRequest;
+		const remainderOfContent = content.slice(frontMatterInfo.contentStart);
 
-					return this.updateArticle(updadateModel);
-				}
-				else {
-					const createModel = {
-						team: this.settings.teamSlug,
-						articleRequestModel: {
-							title: frontmatter.title ? frontmatter.title : activeFile.name.substring(0, activeFile.name.indexOf('.')),
-							body: remainderOfContent,
-							bodyMarkdown: remainderOfContent,
-							tags: frontmatter.tags ?? defaultTagIfNonePresent,
-							type: frontmatter.type ? frontmatter.type : defaultArticleType,
-							permissions: frontmatter.permissions
-						}
-					} as TeamsTeamArticlesPostRequest;
+		if (frontmatter.articleId || frontmatter.id) {
+			const updadateModel = this.convertArticleToUpdateModel(activeFile.name, remainderOfContent, frontmatter);
 
-					return this.createArticle(createModel)
-						.then((response) => {
-							if (response) {
-								response.bodyMarkdown ??= remainderOfContent.trim();
-								this.populateArticleFromArticleResponseModel(activeFile, response as ArticleResponseModel).then(() => {
-									activeFile.vault.rename(activeFile, `${this.settings.teamSlug}/${response.title} - ${response.id}.md`);
-								});
-							}
-						}
-						);
-				}
-			});
+			return await this.updateArticle(updadateModel);
+		}
+		else {
+			const createModel = this.convertArticleToCreateModel(activeFile.name, remainderOfContent, frontmatter);
+
+			const response = await this.createArticle(createModel);
+			if (response) {
+				response.bodyMarkdown ??= remainderOfContent.trim();
+				await this.populateArticleFromArticleResponseModel(activeFile, response as ArticleResponseModel)
+				await activeFile.vault.rename(activeFile, `${this.settings.teamSlug}/${response.title} - ${response.id}.md`);
+			}
+		}
 	}
 
-	private async updateArticle(article: TeamsTeamArticlesArticleIdPutRequest) {
-		return this.apiClient.teamsTeamArticlesArticleIdPut(article)
-			.then((response) => {
-				const message = `${response.title} updated`;
-				new Notice(message);
-				return true;
-			})
-			.catch((error: any) => {
-				// Handle the error if needed
-				console.error('Error saving article:', error);
-				return false;
-			});
+	private async updateArticle(article: TeamsTeamArticlesArticleIdPutRequest): Promise<boolean> {
+		try {
+			const response = await this.apiClient.teamsTeamArticlesArticleIdPut(article)
+			const message = `${response.title} updated`;
+
+			new Notice(message);
+			return true;
+		}
+		catch (error: any) {
+			// Handle the error if needed
+			console.error('Error saving article:', error);
+			return false;
+		}
 	}
 
-	private async createArticle(article: TeamsTeamArticlesPostRequest) {
-		return this.apiClient.teamsTeamArticlesPost(article)
-			.then((response) => {
-				const message = `${response.title} created`;
-				new Notice(message);
-				return response;
-			})
-			.catch((error: any) => {
-				// Handle the error if needed
-				new Notice(`Error syncing with Stack Overflow for Teams: ${this.settings.teamSlug}`);
-				console.error('Error saving article:', error);
-				return null;
-			});
+	private async createArticle(article: TeamsTeamArticlesPostRequest): Promise<ArticleResponseModel | null> {
+		try {
+			const response = await this.apiClient.teamsTeamArticlesPost(article);
+			const message = `${response.title} created`;
+			new Notice(message);
+			return response;
+		}
+		catch (error: any) {
+			// Handle the error if needed
+			new Notice(`Error syncing with Stack Overflow for Teams: ${this.settings.teamSlug}`);
+			console.error('Error saving article:', error);
+			return null;
+		}
 	}
 
 	private async populateArticleFromArticleResponseModel(activeFile: TFile, article: ArticleResponseModel): Promise<void> {
-		const frontmatter: any = {};
+		const articleFrontMatter: ArticleFrontMatterModel = new ArticleFrontMatterModel();
 
 		// Add or update the property
-		frontmatter['articleId'] = article.id;
-		frontmatter['tags'] = article.tags;
-		frontmatter['communities'] = article.communities?.map(community => community.name);
-		frontmatter['id'] = article.id;
-		frontmatter['type'] = article.type;
-		frontmatter['title'] = article.title;
-		frontmatter['tags'] = article.tags?.map(tag => tag.name);
-		frontmatter['owner'] = article.owner?.name;
-		frontmatter['lastEditor'] = article.lastEditor?.name;
-		frontmatter['creationDate'] = article.creationDate;
-		frontmatter['lastActivityDate'] = article.lastActivityDate;
-		frontmatter['score'] = article.score;
-		frontmatter['viewCount'] = article.viewCount;
-		frontmatter['shareUrl'] = article.shareUrl;
-		frontmatter['isDeleted'] = article.isDeleted;
-		frontmatter['isObsolete'] = article.isObsolete;
-		frontmatter['isClosed'] = article.isClosed;
-		frontmatter['userIsFollowing'] = article.userIsFollowing;
-		frontmatter['userHasUpvoted'] = article.userHasUpvoted;
-		frontmatter['userHasDownvoted'] = article.userHasDownvoted;
-		frontmatter['userCanEdit'] = article.userCanEdit;
-		frontmatter['permissions'] = article.permissions ? this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(article.permissions) : null;
+		articleFrontMatter.articleId = article.id;
+		articleFrontMatter.communities = article.communities?.map(community => community.name!);
+		articleFrontMatter.id = article.id;
+		articleFrontMatter.type = article.type;
+		articleFrontMatter.title = article.title;
+		articleFrontMatter.tags = article.tags?.map(tag => tag.name!);
+		articleFrontMatter.owner = article.owner?.name;
+		articleFrontMatter.lastEditor = article.lastEditor?.name;
+		articleFrontMatter.creationDate = article.creationDate;
+		articleFrontMatter.lastActivityDate = article.lastActivityDate;
+		articleFrontMatter.score = article.score;
+		articleFrontMatter.viewCount = article.viewCount;
+		articleFrontMatter.shareUrl = article.shareUrl;
+		articleFrontMatter.isDeleted = article.isDeleted;
+		articleFrontMatter.isObsolete = article.isObsolete;
+		articleFrontMatter.isClosed = article.isClosed;
+		articleFrontMatter.userIsFollowing = article.userIsFollowing;
+		articleFrontMatter.userHasUpvoted = article.userHasUpvoted;
+		articleFrontMatter.userHasDownvoted = article.userHasDownvoted;
+		articleFrontMatter.userCanEdit = article.userCanEdit;
+		articleFrontMatter.permissions = article.permissions ? this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(article.permissions) : null;
 
 		// Convert the updated frontmatter back to YAML
-		const updatedFrontmatter = stringify(frontmatter);
+		const updatedFrontmatter = stringify(articleFrontMatter);
 
 		// Rebuild the file content
 		const newContent = `---\n${updatedFrontmatter}---\n\n${article.bodyMarkdown}`;
 
 		// Write the updated content back to the file
-		this.app.vault.modify(activeFile, newContent);
+		await this.app.vault.modify(activeFile, newContent);
 	}
 
 	private convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(permissions: ArticlePermissionsResponseModel): ArticlePermissionsRequestModel {
@@ -333,6 +291,35 @@ export default class StackOverflowFBBSync extends Plugin {
 			editorUserIds: permissions.editorUsers?.map(user => user.id!),
 			editorUserGroupIds: permissions.editorUserGroups?.map(userGroup => userGroup.id!)
 		}
+	}
+
+	private convertArticleToUpdateModel(activeFileName: string, content: string, frontmatter: ArticleFrontMatterModel): TeamsTeamArticlesArticleIdPutRequest {
+		return {
+			articleId: frontmatter.articleId,
+			team: this.settings.teamSlug,
+			articleRequestModel: {
+				title: frontmatter.title ? frontmatter.title : activeFileName.substring(0, activeFileName.indexOf('.')),
+				body: content,
+				bodyMarkdown: content,
+				tags: frontmatter.tags ?? defaultTagIfNonePresent,
+				type: frontmatter.type ? frontmatter.type : defaultArticleType,
+				permissions: frontmatter.permissions
+			}
+		} as TeamsTeamArticlesArticleIdPutRequest
+	}
+
+	private convertArticleToCreateModel(activeFileName: string, content: string, frontmatter: ArticleFrontMatterModel): TeamsTeamArticlesPostRequest {
+		return {
+			team: this.settings.teamSlug,
+			articleRequestModel: {
+				title: frontmatter.title ? frontmatter.title : activeFileName.substring(0, activeFileName.indexOf('.')),
+				body: content,
+				bodyMarkdown: content,
+				tags: frontmatter.tags ?? defaultTagIfNonePresent,
+				type: frontmatter.type ? frontmatter.type : defaultArticleType,
+				permissions: frontmatter.permissions
+			}
+		} as TeamsTeamArticlesPostRequest;
 	}
 
 }
