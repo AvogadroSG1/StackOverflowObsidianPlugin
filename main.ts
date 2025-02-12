@@ -2,6 +2,7 @@ import { App, FileManager, getFrontMatterInfo, MarkdownView, Modal, Notice, Plug
 import { parse, stringify } from 'yaml';
 import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest, ArticlePermissionsResponseModel, ArticlePermissionsRequestModel } from './generated-api'
 import { FileFunctions } from './generated-api/FileFunctions/FileFunctions';
+import { ArticleFrontMatterModel } from './generated-api/models/GenericModels/ArticleModel';
 
 interface StackOverflowFBBSyncSettings {
 	PAT: string;
@@ -257,34 +258,33 @@ export default class StackOverflowFBBSync extends Plugin {
 	}
 
 	private async populateArticleFromArticleResponseModel(activeFile: TFile, article: ArticleResponseModel): Promise<void> {
-		const frontmatter: any = {};
+		const articleFrontMatter: ArticleFrontMatterModel = new ArticleFrontMatterModel();
 
 		// Add or update the property
-		frontmatter['articleId'] = article.id;
-		frontmatter['tags'] = article.tags;
-		frontmatter['communities'] = article.communities?.map(community => community.name);
-		frontmatter['id'] = article.id;
-		frontmatter['type'] = article.type;
-		frontmatter['title'] = article.title;
-		frontmatter['tags'] = article.tags?.map(tag => tag.name);
-		frontmatter['owner'] = article.owner?.name;
-		frontmatter['lastEditor'] = article.lastEditor?.name;
-		frontmatter['creationDate'] = article.creationDate;
-		frontmatter['lastActivityDate'] = article.lastActivityDate;
-		frontmatter['score'] = article.score;
-		frontmatter['viewCount'] = article.viewCount;
-		frontmatter['shareUrl'] = article.shareUrl;
-		frontmatter['isDeleted'] = article.isDeleted;
-		frontmatter['isObsolete'] = article.isObsolete;
-		frontmatter['isClosed'] = article.isClosed;
-		frontmatter['userIsFollowing'] = article.userIsFollowing;
-		frontmatter['userHasUpvoted'] = article.userHasUpvoted;
-		frontmatter['userHasDownvoted'] = article.userHasDownvoted;
-		frontmatter['userCanEdit'] = article.userCanEdit;
-		frontmatter['permissions'] = article.permissions ? this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(article.permissions) : null;
+		articleFrontMatter.articleId = article.id;
+		articleFrontMatter.communities = article.communities?.map(community => community.name!);
+		articleFrontMatter.id = article.id;
+		articleFrontMatter.type = article.type;
+		articleFrontMatter.title = article.title;
+		articleFrontMatter.tags = article.tags?.map(tag => tag.name!);
+		articleFrontMatter.owner = article.owner?.name;
+		articleFrontMatter.lastEditor = article.lastEditor?.name;
+		articleFrontMatter.creationDate = article.creationDate;
+		articleFrontMatter.lastActivityDate = article.lastActivityDate;
+		articleFrontMatter.score = article.score;
+		articleFrontMatter.viewCount = article.viewCount;
+		articleFrontMatter.shareUrl = article.shareUrl;
+		articleFrontMatter.isDeleted = article.isDeleted;
+		articleFrontMatter.isObsolete = article.isObsolete;
+		articleFrontMatter.isClosed = article.isClosed;
+		articleFrontMatter.userIsFollowing = article.userIsFollowing;
+		articleFrontMatter.userHasUpvoted = article.userHasUpvoted;
+		articleFrontMatter.userHasDownvoted = article.userHasDownvoted;
+		articleFrontMatter.userCanEdit = article.userCanEdit;
+		articleFrontMatter.permissions = article.permissions ? this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(article.permissions) : null;
 
 		// Convert the updated frontmatter back to YAML
-		const updatedFrontmatter = stringify(frontmatter);
+		const updatedFrontmatter = stringify(articleFrontMatter);
 
 		// Rebuild the file content
 		const newContent = `---\n${updatedFrontmatter}---\n\n${article.bodyMarkdown}`;
