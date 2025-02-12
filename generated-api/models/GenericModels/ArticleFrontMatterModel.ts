@@ -10,6 +10,11 @@ export class ArticleFrontMatterModel {
 
     private _id?: number | null;
 
+    constructor(sourceObject?: ArticleFrontMatterModel){
+        if(sourceObject){
+            this.copyAndCreateNewProperties(this, sourceObject);
+        }
+    }
     /**
      * articleId. The article's unique identifier.
      * @type {number}
@@ -162,9 +167,33 @@ export class ArticleFrontMatterModel {
      * @memberof ArticleModel
      */
     permissions?: ArticlePermissionsResponseModel | null;
+
+    private copyAndCreateNewProperties(copyToObject: ArticleFrontMatterModel, sourceObject: ArticleFrontMatterModel) {
+        copyToObject.articleId = sourceObject.articleId;
+        copyToObject.communities = sourceObject.communities;
+        copyToObject.id = sourceObject.id;
+        copyToObject.type = sourceObject.type;
+        copyToObject.title = sourceObject.title;
+        copyToObject.body = sourceObject.body;
+        copyToObject.tags = sourceObject.tags;
+        copyToObject.owner = sourceObject.owner;
+        copyToObject.lastEditor = sourceObject.lastEditor;
+        copyToObject.creationDate = sourceObject.creationDate;
+        copyToObject.lastActivityDate = sourceObject.lastActivityDate;
+        copyToObject.score = sourceObject.score;
+        copyToObject.viewCount = sourceObject.viewCount;
+        copyToObject.shareUrl = sourceObject.shareUrl;
+        copyToObject.isDeleted = sourceObject.isDeleted;
+        copyToObject.isObsolete = sourceObject.isObsolete;
+        copyToObject.isClosed = sourceObject.isClosed;
+        copyToObject.bodyMarkdown = sourceObject.bodyMarkdown;
+        copyToObject.userIsFollowing = sourceObject.userIsFollowing;
+        copyToObject.userHasUpvoted = sourceObject.userHasUpvoted;
+        copyToObject.userHasDownvoted = sourceObject.userHasDownvoted;
+        copyToObject.userCanEdit = sourceObject.userCanEdit;
+        copyToObject.permissions = sourceObject.permissions;
+    }
 }
-
-
 
 /**
  * Check if a given object implements the ArticleModel interface.
@@ -172,4 +201,6 @@ export class ArticleFrontMatterModel {
 export function instanceOfArticleModel(value: object): value is ArticleFrontMatterModel {
     return true;
 }
+
+
 

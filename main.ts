@@ -1,4 +1,5 @@
-import { App, FileManager, getFrontMatterInfo, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { App, getFrontMatterInfo, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import { parse, stringify } from 'yaml';
 import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest, ArticlePermissionsResponseModel, ArticlePermissionsRequestModel } from './generated-api'
 import { FileFunctions } from './generated-api/FileFunctions/FileFunctions';
@@ -77,8 +78,6 @@ export default class StackOverflowFBBSync extends Plugin {
 	apiClient = new ArticlesApi(configuration);
 
 	fileFunctions = new FileFunctions(this.app);
-
-	fileManager = new FileManager();
 	
 	async onload() {
 		await this.loadSettings();
@@ -202,12 +201,12 @@ export default class StackOverflowFBBSync extends Plugin {
 			.then((content: string) => {
 
 				const frontMatterInfo = getFrontMatterInfo(content);
-				//TOO: This could be an ArticleFrontMatterModel
-				const frontmatter = parse(frontMatterInfo.frontmatter);
+				
+				const frontmatter = new ArticleFrontMatterModel(parse(frontMatterInfo.frontmatter) as ArticleFrontMatterModel);
 
 				const remainderOfContent = content.slice(frontMatterInfo.contentStart);
 
-				if (frontmatter.articleId) {
+				if (frontmatter.articleId || frontmatter.id) {
 					const updadateModel = this.convertArticleToUpdateModel(activeFile.name, remainderOfContent, frontmatter);
 
 					return this.updateArticle(updadateModel);
@@ -302,7 +301,7 @@ export default class StackOverflowFBBSync extends Plugin {
 		}
 	}
 
-	private convertArticleToUpdateModel(activeFileName: string, content: string, frontmatter: any) : TeamsTeamArticlesArticleIdPutRequest
+	private convertArticleToUpdateModel(activeFileName: string, content: string, frontmatter: ArticleFrontMatterModel) : TeamsTeamArticlesArticleIdPutRequest
 	{
 		return {
 			articleId: frontmatter.articleId,
@@ -318,7 +317,7 @@ export default class StackOverflowFBBSync extends Plugin {
 		} as TeamsTeamArticlesArticleIdPutRequest
 	}
 
-	private convertArticleToCreateModel(activeFileName: string, content: string, frontmatter: any) : TeamsTeamArticlesPostRequest {
+	private convertArticleToCreateModel(activeFileName: string, content: string, frontmatter: ArticleFrontMatterModel) : TeamsTeamArticlesPostRequest {
 		return {
 			team: this.settings.teamSlug,
 			articleRequestModel: {
