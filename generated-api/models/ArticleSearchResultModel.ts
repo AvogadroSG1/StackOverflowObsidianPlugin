@@ -24,6 +24,7 @@ import {
     UserSummaryResponseModelFromJSON,
     UserSummaryResponseModelFromJSONTyped,
     UserSummaryResponseModelToJSON,
+    instanceOfUserSummaryResponseModel
 } from './UserSummaryResponseModel';
 
 /**
@@ -83,46 +84,76 @@ export interface ArticleSearchResultModel {
 }
 
 /**
- * Check if a given object implements the ArticleSearchResultModel interface.
+ * JSON representation of article search result
  */
-export function instanceOfArticleSearchResultModel(value: object): value is ArticleSearchResultModel {
-    return true;
+export type ArticleSearchResultModelJson = {
+    type?: string;
+    articleId?: number;
+    viewCount?: number;
+    title?: string;
+    snippet?: string;
+    tags?: unknown[];
+    owner?: unknown;
+    creationDate?: string;
 }
 
-export function ArticleSearchResultModelFromJSON(json: any): ArticleSearchResultModel {
+/**
+ * Check if a given object implements the ArticleSearchResultModel interface.
+ */
+export function instanceOfArticleSearchResultModel(value: unknown): value is ArticleSearchResultModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<ArticleSearchResultModel>;
+    
+    return (
+        (v.type === undefined || typeof v.type === 'string') &&
+        (v.articleId === undefined || typeof v.articleId === 'number') &&
+        (v.viewCount === undefined || typeof v.viewCount === 'number') &&
+        (v.title === undefined || typeof v.title === 'string') &&
+        (v.snippet === undefined || typeof v.snippet === 'string') &&
+        (v.tags === undefined || Array.isArray(v.tags)) &&
+        (v.owner === undefined || instanceOfUserSummaryResponseModel(v.owner)) &&
+        (v.creationDate === undefined || v.creationDate instanceof Date)
+    );
+}
+
+export function ArticleSearchResultModelFromJSON(json: ArticleSearchResultModelJson): ArticleSearchResultModel {
     return ArticleSearchResultModelFromJSONTyped(json, false);
 }
 
-export function ArticleSearchResultModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticleSearchResultModel {
-    if (json == null) {
-        return json;
+export function ArticleSearchResultModelFromJSONTyped(
+    json: ArticleSearchResultModelJson,
+    ignoreDiscriminator: boolean
+): ArticleSearchResultModel {
+    if (!json) {
+        throw new Error('ArticleSearchResultModel JSON cannot be null or undefined');
     }
+    
     return {
-        
-        'type': json['type'] == null ? undefined : json['type'],
-        'articleId': json['articleId'] == null ? undefined : json['articleId'],
-        'viewCount': json['viewCount'] == null ? undefined : json['viewCount'],
-        'title': json['title'] == null ? undefined : json['title'],
-        'snippet': json['snippet'] == null ? undefined : json['snippet'],
-        'tags': json['tags'] == null ? undefined : ((json['tags'] as Array<any>).map(TagSummaryResponseModelFromJSON)),
-        'owner': json['owner'] == null ? undefined : UserSummaryResponseModelFromJSON(json['owner']),
-        'creationDate': json['creationDate'] == null ? undefined : (new Date(json['creationDate'])),
+        'type': json.type,
+        'articleId': json.articleId,
+        'viewCount': json.viewCount,
+        'title': json.title,
+        'snippet': json.snippet,
+        'tags': json.tags === undefined ? undefined : json.tags.map(TagSummaryResponseModelFromJSON),
+        'owner': json.owner === undefined ? undefined : UserSummaryResponseModelFromJSON(json.owner),
+        'creationDate': json.creationDate === undefined ? undefined : new Date(json.creationDate)
     };
 }
 
-export function ArticleSearchResultModelToJSON(value?: ArticleSearchResultModel | null): any {
-    if (value == null) {
-        return value;
+export function ArticleSearchResultModelToJSON(value?: ArticleSearchResultModel | null): ArticleSearchResultModelJson | null {
+    if (!value) {
+        return null;
     }
+    
     return {
-        
-        'articleId': value['articleId'],
-        'viewCount': value['viewCount'],
-        'title': value['title'],
-        'snippet': value['snippet'],
-        'tags': value['tags'] == null ? undefined : ((value['tags'] as Array<any>).map(TagSummaryResponseModelToJSON)),
-        'owner': UserSummaryResponseModelToJSON(value['owner']),
-        'creationDate': value['creationDate'] == null ? undefined : ((value['creationDate']).toISOString()),
+        'type': value.type,
+        'articleId': value.articleId,
+        'viewCount': value.viewCount,
+        'title': value.title,
+        'snippet': value.snippet,
+        'tags': value.tags === undefined ? undefined : value.tags.map(TagSummaryResponseModelToJSON),
+        'owner': value.owner === undefined ? undefined : UserSummaryResponseModelToJSON(value.owner),
+        'creationDate': value.creationDate === undefined ? undefined : value.creationDate.toISOString()
     };
 }
 

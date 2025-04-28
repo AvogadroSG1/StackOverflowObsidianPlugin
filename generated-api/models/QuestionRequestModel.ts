@@ -13,6 +13,16 @@
  */
 
 import { mapValues } from '../runtime';
+
+/**
+ * JSON representation of a question request
+ */
+export type QuestionRequestModelJson = {
+    title: string;
+    body: string;
+    tags: string[];
+}
+
 /**
  * 
  * @export
@@ -42,38 +52,44 @@ export interface QuestionRequestModel {
 /**
  * Check if a given object implements the QuestionRequestModel interface.
  */
-export function instanceOfQuestionRequestModel(value: object): value is QuestionRequestModel {
-    if (!('title' in value) || (value as any)['title'] === undefined) return false;
-    if (!('body' in value) || (value as any)['body'] === undefined) return false;
-    if (!('tags' in value) || (value as any)['tags'] === undefined) return false;
-    return true;
+export function instanceOfQuestionRequestModel(value: unknown): value is QuestionRequestModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<QuestionRequestModel>;
+    
+    return typeof v.title === 'string' &&
+           typeof v.body === 'string' &&
+           Array.isArray(v.tags) &&
+           v.tags.every(tag => typeof tag === 'string');
 }
 
-export function QuestionRequestModelFromJSON(json: any): QuestionRequestModel {
+export function QuestionRequestModelFromJSON(json: QuestionRequestModelJson): QuestionRequestModel {
     return QuestionRequestModelFromJSONTyped(json, false);
 }
 
-export function QuestionRequestModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): QuestionRequestModel {
-    if (json == null) {
-        return json;
+export function QuestionRequestModelFromJSONTyped(
+    json: QuestionRequestModelJson,
+    ignoreDiscriminator: boolean
+): QuestionRequestModel {
+    if (!json) {
+        throw new Error('QuestionRequestModel JSON cannot be null or undefined');
     }
+    
     return {
-        
-        'title': json['title'],
-        'body': json['body'],
-        'tags': json['tags'],
+        'title': json.title,
+        'body': json.body,
+        'tags': json.tags,
     };
 }
 
-export function QuestionRequestModelToJSON(value?: QuestionRequestModel | null): any {
-    if (value == null) {
-        return value;
+export function QuestionRequestModelToJSON(value?: QuestionRequestModel | null): QuestionRequestModelJson | null {
+    if (!value) {
+        return null;
     }
+    
     return {
-        
-        'title': value['title'],
-        'body': value['body'],
-        'tags': value['tags'],
+        'title': value.title,
+        'body': value.body,
+        'tags': value.tags,
     };
 }
 

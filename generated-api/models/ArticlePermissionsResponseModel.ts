@@ -18,19 +18,45 @@ import {
     UserGroupResponseModelFromJSON,
     UserGroupResponseModelFromJSONTyped,
     UserGroupResponseModelToJSON,
+    instanceOfUserGroupResponseModel
 } from './UserGroupResponseModel';
 import type { ArticlePermissionsType } from './ArticlePermissionsType';
 import {
     ArticlePermissionsTypeFromJSON,
     ArticlePermissionsTypeFromJSONTyped,
     ArticlePermissionsTypeToJSON,
+    instanceOfArticlePermissionsType
 } from './ArticlePermissionsType';
 import type { UserSummaryResponseModel } from './UserSummaryResponseModel';
 import {
     UserSummaryResponseModelFromJSON,
     UserSummaryResponseModelFromJSONTyped,
     UserSummaryResponseModelToJSON,
+    instanceOfUserSummaryResponseModel
 } from './UserSummaryResponseModel';
+import type { ArticleType } from './ArticleType';
+import {
+    ArticleTypeFromJSON,
+    ArticleTypeFromJSONTyped,
+    ArticleTypeToJSON,
+    instanceOfArticleType
+} from './ArticleType';
+
+/**
+ * JSON representation of article permissions response
+ */
+export type ArticlePermissionsResponseModelJson = {
+    articleType?: unknown;
+    articleId?: unknown;
+    articleTitle?: unknown;
+    articleUrl?: unknown;
+    articlePermissions?: unknown;
+    userGroups?: unknown[];
+    createdBy?: unknown;
+    lastModifiedBy?: unknown;
+    createdDate?: unknown;
+    lastModifiedDate?: unknown;
+}
 
 /**
  * 
@@ -40,58 +66,140 @@ import {
 export interface ArticlePermissionsResponseModel {
     /**
      * 
+     * @type {ArticleType}
+     * @memberof ArticlePermissionsResponseModel
+     */
+    articleType?: ArticleType;
+    /**
+     * 
+     * @type {number}
+     * @memberof ArticlePermissionsResponseModel
+     */
+    articleId?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticlePermissionsResponseModel
+     */
+    articleTitle?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticlePermissionsResponseModel
+     */
+    articleUrl?: string;
+    /**
+     * 
      * @type {ArticlePermissionsType}
      * @memberof ArticlePermissionsResponseModel
      */
-    editableBy?: ArticlePermissionsType;
-    /**
-     * Editor Users. The individual users who can edit this article
-     * @type {Array<UserSummaryResponseModel>}
-     * @memberof ArticlePermissionsResponseModel
-     */
-    editorUsers?: Array<UserSummaryResponseModel>;
+    articlePermissions?: ArticlePermissionsType;
     /**
      * Editor User Groups. The user groups that can edit this article
      * @type {Array<UserGroupResponseModel>}
      * @memberof ArticlePermissionsResponseModel
      */
-    editorUserGroups?: Array<UserGroupResponseModel>;
+    userGroups?: Array<UserGroupResponseModel>;
+    /**
+     * 
+     * @type {UserSummaryResponseModel}
+     * @memberof ArticlePermissionsResponseModel
+     */
+    createdBy?: UserSummaryResponseModel;
+    /**
+     * 
+     * @type {UserSummaryResponseModel}
+     * @memberof ArticlePermissionsResponseModel
+     */
+    lastModifiedBy?: UserSummaryResponseModel;
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticlePermissionsResponseModel
+     */
+    createdDate?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ArticlePermissionsResponseModel
+     */
+    lastModifiedDate?: string;
 }
-
-
 
 /**
  * Check if a given object implements the ArticlePermissionsResponseModel interface.
  */
-export function instanceOfArticlePermissionsResponseModel(value: object): value is ArticlePermissionsResponseModel {
-    return true;
+export function instanceOfArticlePermissionsResponseModel(value: unknown): value is ArticlePermissionsResponseModel {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    const obj = value as ArticlePermissionsResponseModel;
+    return (
+        (obj.articleType === undefined || instanceOfArticleType(obj.articleType)) &&
+        (obj.articleId === undefined || typeof obj.articleId === 'number') &&
+        (obj.articleTitle === undefined || typeof obj.articleTitle === 'string') &&
+        (obj.articleUrl === undefined || typeof obj.articleUrl === 'string') &&
+        (obj.articlePermissions === undefined || instanceOfArticlePermissionsType(obj.articlePermissions)) &&
+        (obj.userGroups === undefined || Array.isArray(obj.userGroups) && obj.userGroups.every(item => instanceOfUserGroupResponseModel(item))) &&
+        (obj.createdBy === undefined || instanceOfUserSummaryResponseModel(obj.createdBy)) &&
+        (obj.lastModifiedBy === undefined || instanceOfUserSummaryResponseModel(obj.lastModifiedBy)) &&
+        (obj.createdDate === undefined || typeof obj.createdDate === 'string') &&
+        (obj.lastModifiedDate === undefined || typeof obj.lastModifiedDate === 'string')
+    );
 }
 
 export function ArticlePermissionsResponseModelFromJSON(json: any): ArticlePermissionsResponseModel {
-    return ArticlePermissionsResponseModelFromJSONTyped(json, false);
-}
-
-export function ArticlePermissionsResponseModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticlePermissionsResponseModel {
-    if (json == null) {
-        return json;
-    }
     return {
-        
-        'editableBy': json['editableBy'] == null ? undefined : ArticlePermissionsTypeFromJSON(json['editableBy']),
-        'editorUsers': json['editorUsers'] == null ? undefined : ((json['editorUsers'] as Array<any>).map(UserSummaryResponseModelFromJSON)),
-        'editorUserGroups': json['editorUserGroups'] == null ? undefined : ((json['editorUserGroups'] as Array<any>).map(UserGroupResponseModelFromJSON)),
+        'articleType': json.articleType === undefined ? undefined : ArticleTypeFromJSON(json.articleType),
+        'articleId': json.articleId === undefined ? undefined : Number(json.articleId),
+        'articleTitle': json.articleTitle === undefined ? undefined : String(json.articleTitle),
+        'articleUrl': json.articleUrl === undefined ? undefined : String(json.articleUrl),
+        'articlePermissions': json.articlePermissions === undefined ? undefined : ArticlePermissionsTypeFromJSON(json.articlePermissions),
+        'userGroups': json.userGroups === undefined ? undefined : json.userGroups.map(UserGroupResponseModelFromJSON),
+        'createdBy': json.createdBy === undefined ? undefined : UserSummaryResponseModelFromJSON(json.createdBy),
+        'lastModifiedBy': json.lastModifiedBy === undefined ? undefined : UserSummaryResponseModelFromJSON(json.lastModifiedBy),
+        'createdDate': json.createdDate === undefined ? undefined : String(json.createdDate),
+        'lastModifiedDate': json.lastModifiedDate === undefined ? undefined : String(json.lastModifiedDate)
     };
 }
 
-export function ArticlePermissionsResponseModelToJSON(value?: ArticlePermissionsResponseModel | null): any {
+export function ArticlePermissionsResponseModelFromJSONTyped(
+    json: ArticlePermissionsResponseModelJson,
+    ignoreDiscriminator: boolean
+): ArticlePermissionsResponseModel {
+    if (!json) {
+        throw new Error('ArticlePermissionsResponseModel JSON cannot be null or undefined');
+    }
+    
+    return {
+        'articleType': json.articleType === undefined ? undefined : ArticleTypeFromJSON(json.articleType),
+        'articleId': json.articleId === undefined ? undefined : Number(json.articleId),
+        'articleTitle': json.articleTitle === undefined ? undefined : String(json.articleTitle),
+        'articleUrl': json.articleUrl === undefined ? undefined : String(json.articleUrl),
+        'articlePermissions': json.articlePermissions === undefined ? undefined : ArticlePermissionsTypeFromJSON(json.articlePermissions),
+        'userGroups': json.userGroups === undefined ? undefined : json.userGroups.map(UserGroupResponseModelFromJSON),
+        'createdBy': json.createdBy === undefined ? undefined : UserSummaryResponseModelFromJSON(json.createdBy),
+        'lastModifiedBy': json.lastModifiedBy === undefined ? undefined : UserSummaryResponseModelFromJSON(json.lastModifiedBy),
+        'createdDate': json.createdDate === undefined ? undefined : String(json.createdDate),
+        'lastModifiedDate': json.lastModifiedDate === undefined ? undefined : String(json.lastModifiedDate)
+    };
+}
+
+export function ArticlePermissionsResponseModelToJSON(value?: ArticlePermissionsResponseModel | null): ArticlePermissionsResponseModelJson | null {
     if (value == null) {
-        return value;
+        return null;
     }
     return {
-        
-        'editableBy': ArticlePermissionsTypeToJSON(value['editableBy']),
-        'editorUsers': value['editorUsers'] == null ? undefined : ((value['editorUsers'] as Array<any>).map(UserSummaryResponseModelToJSON)),
-        'editorUserGroups': value['editorUserGroups'] == null ? undefined : ((value['editorUserGroups'] as Array<any>).map(UserGroupResponseModelToJSON)),
+        'articleType': value.articleType === undefined ? undefined : ArticleTypeToJSON(value.articleType),
+        'articleId': value.articleId,
+        'articleTitle': value.articleTitle,
+        'articleUrl': value.articleUrl,
+        'articlePermissions': value.articlePermissions === undefined ? undefined : ArticlePermissionsTypeToJSON(value.articlePermissions),
+        'userGroups': value.userGroups?.map(item => UserGroupResponseModelToJSON(item)),
+        'createdBy': value.createdBy ? UserSummaryResponseModelToJSON(value.createdBy) : undefined,
+        'lastModifiedBy': value.lastModifiedBy ? UserSummaryResponseModelToJSON(value.lastModifiedBy) : undefined,
+        'createdDate': value.createdDate,
+        'lastModifiedDate': value.lastModifiedDate
     };
 }
 

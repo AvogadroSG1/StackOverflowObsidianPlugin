@@ -13,6 +13,17 @@
  */
 
 import { mapValues } from '../runtime';
+
+/**
+ * JSON representation of a flag request
+ */
+export type FlagRequestModelJson = {
+    optionId: number;
+    comment?: string | null;
+    relatedQuestionId?: number | null;
+    targetSite?: string | null;
+}
+
 /**
  * 
  * @export
@@ -48,38 +59,46 @@ export interface FlagRequestModel {
 /**
  * Check if a given object implements the FlagRequestModel interface.
  */
-export function instanceOfFlagRequestModel(value: object): value is FlagRequestModel {
-    if (!('optionId' in value) || (value as any)['optionId'] === undefined) return false;
-    return true;
+export function instanceOfFlagRequestModel(value: unknown): value is FlagRequestModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<FlagRequestModel>;
+    
+    return typeof v.optionId === 'number' &&
+           (v.comment === undefined || v.comment === null || typeof v.comment === 'string') &&
+           (v.relatedQuestionId === undefined || v.relatedQuestionId === null || typeof v.relatedQuestionId === 'number') &&
+           (v.targetSite === undefined || v.targetSite === null || typeof v.targetSite === 'string');
 }
 
-export function FlagRequestModelFromJSON(json: any): FlagRequestModel {
+export function FlagRequestModelFromJSON(json: FlagRequestModelJson): FlagRequestModel {
     return FlagRequestModelFromJSONTyped(json, false);
 }
 
-export function FlagRequestModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): FlagRequestModel {
-    if (json == null) {
-        return json;
+export function FlagRequestModelFromJSONTyped(
+    json: FlagRequestModelJson,
+    ignoreDiscriminator: boolean
+): FlagRequestModel {
+    if (!json) {
+        throw new Error('FlagRequestModel JSON cannot be null or undefined');
     }
+    
     return {
-        
-        'optionId': json['optionId'],
-        'comment': json['comment'] == null ? undefined : json['comment'],
-        'relatedQuestionId': json['relatedQuestionId'] == null ? undefined : json['relatedQuestionId'],
-        'targetSite': json['targetSite'] == null ? undefined : json['targetSite'],
+        'optionId': json.optionId,
+        'comment': json.comment,
+        'relatedQuestionId': json.relatedQuestionId,
+        'targetSite': json.targetSite,
     };
 }
 
-export function FlagRequestModelToJSON(value?: FlagRequestModel | null): any {
-    if (value == null) {
-        return value;
+export function FlagRequestModelToJSON(value?: FlagRequestModel | null): FlagRequestModelJson | null {
+    if (!value) {
+        return null;
     }
+    
     return {
-        
-        'optionId': value['optionId'],
-        'comment': value['comment'],
-        'relatedQuestionId': value['relatedQuestionId'],
-        'targetSite': value['targetSite'],
+        'optionId': value.optionId,
+        'comment': value.comment,
+        'relatedQuestionId': value.relatedQuestionId,
+        'targetSite': value.targetSite,
     };
 }
 

@@ -12,7 +12,6 @@
  * Do not edit the class manually.
  */
 
-
 /**
  * Article Type
  * @export
@@ -25,27 +24,22 @@ export const ArticleType = {
 } as const;
 export type ArticleType = typeof ArticleType[keyof typeof ArticleType];
 
-
-export function instanceOfArticleType(value: any): boolean {
-    for (const key in ArticleType) {
-        if (Object.prototype.hasOwnProperty.call(ArticleType, key)) {
-            if (ArticleType[key as keyof typeof ArticleType] === value) {
-                return true;
-            }
-        }
-    }
-    return false;
+export function instanceOfArticleType(value: unknown): value is ArticleType {
+    return typeof value === 'string' && Object.values(ArticleType).includes(value as ArticleType);
 }
 
-export function ArticleTypeFromJSON(json: any): ArticleType {
+export function ArticleTypeFromJSON(json: unknown): ArticleType {
     return ArticleTypeFromJSONTyped(json, false);
 }
 
-export function ArticleTypeFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticleType {
-    return json as ArticleType;
+export function ArticleTypeFromJSONTyped(json: unknown, ignoreDiscriminator: boolean): ArticleType {
+    if (!instanceOfArticleType(json)) {
+        throw new Error('Invalid ArticleType value');
+    }
+    return json;
 }
 
-export function ArticleTypeToJSON(value?: ArticleType | null): any {
-    return value as any;
+export function ArticleTypeToJSON(value?: ArticleType | null): ArticleType | null {
+    return value ?? null;
 }
 

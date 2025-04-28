@@ -25,26 +25,22 @@ export const ArticleSortParameter = {
 export type ArticleSortParameter = typeof ArticleSortParameter[keyof typeof ArticleSortParameter];
 
 
-export function instanceOfArticleSortParameter(value: any): boolean {
-    for (const key in ArticleSortParameter) {
-        if (Object.prototype.hasOwnProperty.call(ArticleSortParameter, key)) {
-            if (ArticleSortParameter[key as keyof typeof ArticleSortParameter] === value) {
-                return true;
-            }
-        }
-    }
-    return false;
+export function instanceOfArticleSortParameter(value: unknown): value is ArticleSortParameter {
+    return typeof value === 'string' && Object.values(ArticleSortParameter).includes(value as ArticleSortParameter);
 }
 
-export function ArticleSortParameterFromJSON(json: any): ArticleSortParameter {
+export function ArticleSortParameterFromJSON(json: unknown): ArticleSortParameter {
     return ArticleSortParameterFromJSONTyped(json, false);
 }
 
-export function ArticleSortParameterFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticleSortParameter {
-    return json as ArticleSortParameter;
+export function ArticleSortParameterFromJSONTyped(json: unknown, ignoreDiscriminator: boolean): ArticleSortParameter {
+    if (!instanceOfArticleSortParameter(json)) {
+        throw new Error('Invalid ArticleSortParameter value');
+    }
+    return json;
 }
 
-export function ArticleSortParameterToJSON(value?: ArticleSortParameter | null): any {
-    return value as any;
+export function ArticleSortParameterToJSON(value?: ArticleSortParameter | null): ArticleSortParameter | null {
+    return value ?? null;
 }
 

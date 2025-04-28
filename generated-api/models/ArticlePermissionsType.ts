@@ -12,9 +12,8 @@
  * Do not edit the class manually.
  */
 
-
 /**
- * 
+ * Article Permissions Type
  * @export
  */
 export const ArticlePermissionsType = {
@@ -24,27 +23,22 @@ export const ArticlePermissionsType = {
 } as const;
 export type ArticlePermissionsType = typeof ArticlePermissionsType[keyof typeof ArticlePermissionsType];
 
-
-export function instanceOfArticlePermissionsType(value: any): boolean {
-    for (const key in ArticlePermissionsType) {
-        if (Object.prototype.hasOwnProperty.call(ArticlePermissionsType, key)) {
-            if (ArticlePermissionsType[key as keyof typeof ArticlePermissionsType] === value) {
-                return true;
-            }
-        }
-    }
-    return false;
+export function instanceOfArticlePermissionsType(value: unknown): value is ArticlePermissionsType {
+    return typeof value === 'string' && Object.values(ArticlePermissionsType).includes(value as ArticlePermissionsType);
 }
 
-export function ArticlePermissionsTypeFromJSON(json: any): ArticlePermissionsType {
+export function ArticlePermissionsTypeFromJSON(json: unknown): ArticlePermissionsType {
     return ArticlePermissionsTypeFromJSONTyped(json, false);
 }
 
-export function ArticlePermissionsTypeFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticlePermissionsType {
-    return json as ArticlePermissionsType;
+export function ArticlePermissionsTypeFromJSONTyped(json: unknown, ignoreDiscriminator: boolean): ArticlePermissionsType {
+    if (!instanceOfArticlePermissionsType(json)) {
+        throw new Error('Invalid ArticlePermissionsType value');
+    }
+    return json;
 }
 
-export function ArticlePermissionsTypeToJSON(value?: ArticlePermissionsType | null): any {
-    return value as any;
+export function ArticlePermissionsTypeToJSON(value?: ArticlePermissionsType | null): ArticlePermissionsType | null {
+    return value ?? null;
 }
 

@@ -60,8 +60,19 @@ export interface UserSummaryResponseModel {
 /**
  * Check if a given object implements the UserSummaryResponseModel interface.
  */
-export function instanceOfUserSummaryResponseModel(value: object): value is UserSummaryResponseModel {
-    return true;
+export function instanceOfUserSummaryResponseModel(value: unknown): value is UserSummaryResponseModel {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    const obj = value as UserSummaryResponseModel;
+    return (
+        (obj.id === undefined || typeof obj.id === 'number') &&
+        (obj.accountId === undefined || obj.accountId === null || typeof obj.accountId === 'number') &&
+        (obj.name === undefined || typeof obj.name === 'string') &&
+        (obj.avatarUrl === undefined || typeof obj.avatarUrl === 'string') &&
+        (obj.reputation === undefined || typeof obj.reputation === 'number') &&
+        (obj.role === undefined || typeof obj.role === 'string')
+    );
 }
 
 export function UserSummaryResponseModelFromJSON(json: any): UserSummaryResponseModel {

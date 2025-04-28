@@ -12,9 +12,8 @@
  * Do not edit the class manually.
  */
 
-
 /**
- * 
+ * Sort Order
  * @export
  */
 export const SortOrder = {
@@ -23,27 +22,22 @@ export const SortOrder = {
 } as const;
 export type SortOrder = typeof SortOrder[keyof typeof SortOrder];
 
-
-export function instanceOfSortOrder(value: any): boolean {
-    for (const key in SortOrder) {
-        if (Object.prototype.hasOwnProperty.call(SortOrder, key)) {
-            if (SortOrder[key as keyof typeof SortOrder] === value) {
-                return true;
-            }
-        }
-    }
-    return false;
+export function instanceOfSortOrder(value: unknown): value is SortOrder {
+    return typeof value === 'string' && Object.values(SortOrder).includes(value as SortOrder);
 }
 
-export function SortOrderFromJSON(json: any): SortOrder {
+export function SortOrderFromJSON(json: unknown): SortOrder {
     return SortOrderFromJSONTyped(json, false);
 }
 
-export function SortOrderFromJSONTyped(json: any, ignoreDiscriminator: boolean): SortOrder {
-    return json as SortOrder;
+export function SortOrderFromJSONTyped(json: unknown, ignoreDiscriminator: boolean): SortOrder {
+    if (!instanceOfSortOrder(json)) {
+        throw new Error('Invalid SortOrder value');
+    }
+    return json;
 }
 
-export function SortOrderToJSON(value?: SortOrder | null): any {
-    return value as any;
+export function SortOrderToJSON(value?: SortOrder | null): SortOrder | null {
+    return value ?? null;
 }
 

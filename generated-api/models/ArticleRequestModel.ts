@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import type { ArticlePermissionsRequestModel } from './ArticlePermissionsRequestModel';
+import type { ArticlePermissionsRequestModel, ArticlePermissionsRequestModelJson } from './ArticlePermissionsRequestModel';
 import {
     ArticlePermissionsRequestModelFromJSON,
     ArticlePermissionsRequestModelFromJSONTyped,
@@ -25,6 +25,17 @@ import {
     ArticleTypeFromJSONTyped,
     ArticleTypeToJSON,
 } from './ArticleType';
+
+/**
+ * JSON representation of ArticleRequestModel
+ */
+export type ArticleRequestModelJson = {
+    title: string;
+    body: string;
+    tags: string[];
+    type: string;
+    permissions: unknown;
+}
 
 /**
  * 
@@ -64,49 +75,58 @@ export interface ArticleRequestModel {
     permissions: ArticlePermissionsRequestModel;
 }
 
-
-
 /**
  * Check if a given object implements the ArticleRequestModel interface.
  */
-export function instanceOfArticleRequestModel(value: object): value is ArticleRequestModel {
-    if (!('title' in value) || (value as ArticleRequestModel).title === undefined) return false;
-    if (!('body' in value) || (value as ArticleRequestModel).body === undefined) return false;
-    if (!('tags' in value) || (value as ArticleRequestModel).tags === undefined) return false;
-    if (!('type' in value) || (value as ArticleRequestModel).type === undefined) return false;
-    if (!('permissions' in value) || (value as any)['permissions'] === undefined) return false;
-    return true;
+export function instanceOfArticleRequestModel(value: unknown): value is ArticleRequestModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<ArticleRequestModel>;
+    
+    return typeof v.title === 'string' &&
+           typeof v.body === 'string' &&
+           Array.isArray(v.tags) &&
+           v.tags.every(tag => typeof tag === 'string') &&
+           v.type !== undefined &&
+           v.permissions !== undefined;
 }
 
-export function ArticleRequestModelFromJSON(json: any): ArticleRequestModel {
+export function ArticleRequestModelFromJSON(json: ArticleRequestModelJson): ArticleRequestModel {
     return ArticleRequestModelFromJSONTyped(json, false);
 }
 
-export function ArticleRequestModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticleRequestModel {
-    if (json == null) {
-        return json;
+export function ArticleRequestModelFromJSONTyped(
+    json: ArticleRequestModelJson,
+    ignoreDiscriminator: boolean
+): ArticleRequestModel {
+    if (!json) {
+        throw new Error('ArticleRequestModel JSON cannot be null or undefined');
     }
+    
     return {
-        
         'title': json['title'],
         'body': json['body'],
-        'tags': json['tags'],
+        'tags': Array.isArray(json['tags']) ? json['tags'] : [],
         'type': ArticleTypeFromJSON(json['type']),
-        'permissions': ArticlePermissionsRequestModelFromJSON(json['permissions']),
+        'permissions': ArticlePermissionsRequestModelFromJSON(json['permissions'] as ArticlePermissionsRequestModelJson),
     };
 }
 
-export function ArticleRequestModelToJSON(value?: ArticleRequestModel | null): any {
-    if (value == null) {
-        return value;
+export function ArticleRequestModelToJSON(value?: ArticleRequestModel | null): ArticleRequestModelJson | null {
+    if (!value) {
+        return null;
     }
+    
+    const type = ArticleTypeToJSON(value.type);
+    if (!type) {
+        throw new Error('Invalid ArticleType value');
+    }
+    
     return {
-        
-        'title': value['title'],
-        'body': value['body'],
-        'tags': value['tags'],
-        'type': ArticleTypeToJSON(value['type']),
-        'permissions': ArticlePermissionsRequestModelToJSON(value['permissions']),
+        'title': value.title,
+        'body': value.body,
+        'tags': value.tags,
+        'type': type,
+        'permissions': ArticlePermissionsRequestModelToJSON(value.permissions),
     };
 }
 

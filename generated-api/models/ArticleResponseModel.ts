@@ -18,31 +18,64 @@ import {
     ArticlePermissionsResponseModelFromJSON,
     ArticlePermissionsResponseModelFromJSONTyped,
     ArticlePermissionsResponseModelToJSON,
+    instanceOfArticlePermissionsResponseModel
 } from './ArticlePermissionsResponseModel';
 import type { CommunitySummaryResponseModel } from './CommunitySummaryResponseModel';
 import {
     CommunitySummaryResponseModelFromJSON,
     CommunitySummaryResponseModelFromJSONTyped,
     CommunitySummaryResponseModelToJSON,
+    instanceOfCommunitySummaryResponseModel
 } from './CommunitySummaryResponseModel';
 import type { TagSummaryResponseModel } from './TagSummaryResponseModel';
 import {
     TagSummaryResponseModelFromJSON,
     TagSummaryResponseModelFromJSONTyped,
     TagSummaryResponseModelToJSON,
+    instanceOfTagSummaryResponseModel
 } from './TagSummaryResponseModel';
 import type { UserSummaryResponseModel } from './UserSummaryResponseModel';
 import {
     UserSummaryResponseModelFromJSON,
     UserSummaryResponseModelFromJSONTyped,
     UserSummaryResponseModelToJSON,
+    instanceOfUserSummaryResponseModel
 } from './UserSummaryResponseModel';
 import type { ArticleType } from './ArticleType';
 import {
     ArticleTypeFromJSON,
     ArticleTypeFromJSONTyped,
     ArticleTypeToJSON,
+    instanceOfArticleType
 } from './ArticleType';
+
+/**
+ * JSON representation of an article response
+ */
+export type ArticleResponseModelJson = {
+    communities?: unknown[];
+    id?: number;
+    type?: string;
+    title?: string;
+    body?: string;
+    tags?: unknown[];
+    owner?: unknown;
+    lastEditor?: unknown;
+    creationDate?: string;
+    lastActivityDate?: string | null;
+    score?: number;
+    viewCount?: number;
+    shareUrl?: string;
+    isDeleted?: boolean;
+    isObsolete?: boolean;
+    isClosed?: boolean;
+    bodyMarkdown?: string;
+    userIsFollowing?: boolean;
+    userHasUpvoted?: boolean;
+    userHasDownvoted?: boolean;
+    userCanEdit?: boolean;
+    permissions?: unknown;
+}
 
 /**
  * 
@@ -184,78 +217,110 @@ export interface ArticleResponseModel {
     permissions?: ArticlePermissionsResponseModel;
 }
 
-
-
 /**
  * Check if a given object implements the ArticleResponseModel interface.
  */
-export function instanceOfArticleResponseModel(value: object): value is ArticleResponseModel {
+export function instanceOfArticleResponseModel(value: unknown): value is ArticleResponseModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<ArticleResponseModel>;
+    
+    // All fields are optional, so we just need to check types if they exist
+    if (v.id !== undefined && typeof v.id !== 'number') return false;
+    if (v.type !== undefined && !instanceOfArticleType(v.type)) return false;
+    if (v.title !== undefined && typeof v.title !== 'string') return false;
+    if (v.body !== undefined && typeof v.body !== 'string') return false;
+    if (v.tags !== undefined && !Array.isArray(v.tags)) return false;
+    if (v.owner !== undefined && !instanceOfUserSummaryResponseModel(v.owner)) return false;
+    if (v.lastEditor !== undefined && !instanceOfUserSummaryResponseModel(v.lastEditor)) return false;
+    if (v.creationDate !== undefined && !(v.creationDate instanceof Date)) return false;
+    if (v.lastActivityDate !== undefined && v.lastActivityDate !== null && !(v.lastActivityDate instanceof Date)) return false;
+    if (v.score !== undefined && typeof v.score !== 'number') return false;
+    if (v.viewCount !== undefined && typeof v.viewCount !== 'number') return false;
+    if (v.shareUrl !== undefined && typeof v.shareUrl !== 'string') return false;
+    if (v.isDeleted !== undefined && typeof v.isDeleted !== 'boolean') return false;
+    if (v.isObsolete !== undefined && typeof v.isObsolete !== 'boolean') return false;
+    if (v.isClosed !== undefined && typeof v.isClosed !== 'boolean') return false;
+    if (v.bodyMarkdown !== undefined && typeof v.bodyMarkdown !== 'string') return false;
+    if (v.userIsFollowing !== undefined && typeof v.userIsFollowing !== 'boolean') return false;
+    if (v.userHasUpvoted !== undefined && typeof v.userHasUpvoted !== 'boolean') return false;
+    if (v.userHasDownvoted !== undefined && typeof v.userHasDownvoted !== 'boolean') return false;
+    if (v.userCanEdit !== undefined && typeof v.userCanEdit !== 'boolean') return false;
+    if (v.permissions !== undefined && !instanceOfArticlePermissionsResponseModel(v.permissions)) return false;
+    
     return true;
 }
 
-export function ArticleResponseModelFromJSON(json: any): ArticleResponseModel {
+export function ArticleResponseModelFromJSON(json: ArticleResponseModelJson): ArticleResponseModel {
     return ArticleResponseModelFromJSONTyped(json, false);
 }
 
-export function ArticleResponseModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticleResponseModel {
-    if (json == null) {
-        return json;
+export function ArticleResponseModelFromJSONTyped(
+    json: ArticleResponseModelJson,
+    ignoreDiscriminator: boolean
+): ArticleResponseModel {
+    if (!json) {
+        throw new Error('ArticleResponseModel JSON cannot be null or undefined');
     }
+    
     return {
-        
-        'communities': json['communities'] == null ? undefined : ((json['communities'] as Array<any>).map(CommunitySummaryResponseModelFromJSON)),
-        'id': json['id'] == null ? undefined : json['id'],
-        'type': json['type'] == null ? undefined : ArticleTypeFromJSON(json['type']),
-        'title': json['title'] == null ? undefined : json['title'],
-        'body': json['body'] == null ? undefined : json['body'],
-        'tags': json['tags'] == null ? undefined : ((json['tags'] as Array<any>).map(TagSummaryResponseModelFromJSON)),
-        'owner': json['owner'] == null ? undefined : UserSummaryResponseModelFromJSON(json['owner']),
-        'lastEditor': json['lastEditor'] == null ? undefined : UserSummaryResponseModelFromJSON(json['lastEditor']),
-        'creationDate': json['creationDate'] == null ? undefined : (new Date(json['creationDate'])),
-        'lastActivityDate': json['lastActivityDate'] == null ? undefined : (new Date(json['lastActivityDate'])),
-        'score': json['score'] == null ? undefined : json['score'],
-        'viewCount': json['viewCount'] == null ? undefined : json['viewCount'],
-        'shareUrl': json['shareUrl'] == null ? undefined : json['shareUrl'],
-        'isDeleted': json['isDeleted'] == null ? undefined : json['isDeleted'],
-        'isObsolete': json['isObsolete'] == null ? undefined : json['isObsolete'],
-        'isClosed': json['isClosed'] == null ? undefined : json['isClosed'],
-        'bodyMarkdown': json['bodyMarkdown'] == null ? undefined : json['bodyMarkdown'],
-        'userIsFollowing': json['userIsFollowing'] == null ? undefined : json['userIsFollowing'],
-        'userHasUpvoted': json['userHasUpvoted'] == null ? undefined : json['userHasUpvoted'],
-        'userHasDownvoted': json['userHasDownvoted'] == null ? undefined : json['userHasDownvoted'],
-        'userCanEdit': json['userCanEdit'] == null ? undefined : json['userCanEdit'],
-        'permissions': json['permissions'] == null ? undefined : ArticlePermissionsResponseModelFromJSON(json['permissions']),
+        'communities': json.communities === undefined ? undefined : json.communities.map(CommunitySummaryResponseModelFromJSON),
+        'id': json.id,
+        'type': json.type === undefined ? undefined : ArticleTypeFromJSON(json.type),
+        'title': json.title,
+        'body': json.body,
+        'tags': json.tags === undefined ? undefined : json.tags.map(TagSummaryResponseModelFromJSON),
+        'owner': json.owner === undefined ? undefined : UserSummaryResponseModelFromJSON(json.owner),
+        'lastEditor': json.lastEditor === undefined ? undefined : UserSummaryResponseModelFromJSON(json.lastEditor),
+        'creationDate': json.creationDate === undefined ? undefined : new Date(json.creationDate),
+        'lastActivityDate': json.lastActivityDate === undefined ? undefined : json.lastActivityDate === null ? null : new Date(json.lastActivityDate),
+        'score': json.score,
+        'viewCount': json.viewCount,
+        'shareUrl': json.shareUrl,
+        'isDeleted': json.isDeleted,
+        'isObsolete': json.isObsolete,
+        'isClosed': json.isClosed,
+        'bodyMarkdown': json.bodyMarkdown,
+        'userIsFollowing': json.userIsFollowing,
+        'userHasUpvoted': json.userHasUpvoted,
+        'userHasDownvoted': json.userHasDownvoted,
+        'userCanEdit': json.userCanEdit,
+        'permissions': json.permissions === undefined ? undefined : ArticlePermissionsResponseModelFromJSON(json.permissions),
     };
 }
 
-export function ArticleResponseModelToJSON(value?: ArticleResponseModel | null): any {
-    if (value == null) {
-        return value;
+export function ArticleResponseModelToJSON(value?: ArticleResponseModel | null): ArticleResponseModelJson | null {
+    if (!value) {
+        return null;
     }
+    
+    const type = value.type === undefined ? undefined : ArticleTypeToJSON(value.type);
+    if (type === null) {
+        throw new Error('Invalid ArticleType value');
+    }
+    
     return {
-        
-        'communities': value['communities'] == null ? undefined : ((value['communities'] as Array<any>).map(CommunitySummaryResponseModelToJSON)),
-        'id': value['id'],
-        'type': ArticleTypeToJSON(value['type']),
-        'title': value['title'],
-        'body': value['body'],
-        'tags': value['tags'] == null ? undefined : ((value['tags'] as Array<any>).map(TagSummaryResponseModelToJSON)),
-        'owner': UserSummaryResponseModelToJSON(value['owner']),
-        'lastEditor': UserSummaryResponseModelToJSON(value['lastEditor']),
-        'creationDate': value['creationDate'] == null ? undefined : ((value['creationDate']).toISOString()),
-        'lastActivityDate': value['lastActivityDate'] == null ? undefined : ((value['lastActivityDate'] as any).toISOString()),
-        'score': value['score'],
-        'viewCount': value['viewCount'],
-        'shareUrl': value['shareUrl'],
-        'isDeleted': value['isDeleted'],
-        'isObsolete': value['isObsolete'],
-        'isClosed': value['isClosed'],
-        'bodyMarkdown': value['bodyMarkdown'],
-        'userIsFollowing': value['userIsFollowing'],
-        'userHasUpvoted': value['userHasUpvoted'],
-        'userHasDownvoted': value['userHasDownvoted'],
-        'userCanEdit': value['userCanEdit'],
-        'permissions': ArticlePermissionsResponseModelToJSON(value['permissions']),
+        'communities': value.communities === undefined ? undefined : value.communities.map(CommunitySummaryResponseModelToJSON),
+        'id': value.id,
+        'type': type,
+        'title': value.title,
+        'body': value.body,
+        'tags': value.tags === undefined ? undefined : value.tags.map(TagSummaryResponseModelToJSON),
+        'owner': value.owner === undefined ? undefined : UserSummaryResponseModelToJSON(value.owner),
+        'lastEditor': value.lastEditor === undefined ? undefined : UserSummaryResponseModelToJSON(value.lastEditor),
+        'creationDate': value.creationDate === undefined ? undefined : value.creationDate.toISOString(),
+        'lastActivityDate': value.lastActivityDate === undefined ? undefined : value.lastActivityDate === null ? null : value.lastActivityDate.toISOString(),
+        'score': value.score,
+        'viewCount': value.viewCount,
+        'shareUrl': value.shareUrl,
+        'isDeleted': value.isDeleted,
+        'isObsolete': value.isObsolete,
+        'isClosed': value.isClosed,
+        'bodyMarkdown': value.bodyMarkdown,
+        'userIsFollowing': value.userIsFollowing,
+        'userHasUpvoted': value.userHasUpvoted,
+        'userHasDownvoted': value.userHasDownvoted,
+        'userCanEdit': value.userCanEdit,
+        'permissions': value.permissions === undefined ? undefined : ArticlePermissionsResponseModelToJSON(value.permissions),
     };
 }
 

@@ -1,4 +1,5 @@
 import type { ArticlePermissionsResponseModel } from '../ArticlePermissionsResponseModel';
+import type { ArticlePermissionsRequestModel } from '../ArticlePermissionsRequestModel';
 import type { ArticleType } from '../ArticleType';
 
 /**
@@ -163,10 +164,10 @@ export class ArticleFrontMatterModel {
     userCanEdit?: boolean;
     /**
      * 
-     * @type {ArticlePermissionsResponseModel}
+     * @type {ArticlePermissionsResponseModel | ArticlePermissionsRequestModel}
      * @memberof ArticleModel
      */
-    permissions?: ArticlePermissionsResponseModel | null;
+    permissions?: ArticlePermissionsResponseModel | ArticlePermissionsRequestModel | null;
 
     private copyAndCreateNewProperties(copyToObject: ArticleFrontMatterModel, sourceObject: ArticleFrontMatterModel) {
         copyToObject.articleId = sourceObject.articleId;

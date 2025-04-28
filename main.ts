@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { App, getFrontMatterInfo, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
-import { parse, stringify } from 'yaml';
+import { parse } from 'yaml';
 import { Configuration, ArticlesApi, ArticleResponseModel, TeamsTeamArticlesArticleIdGetRequest, TeamsTeamArticlesArticleIdPutRequest, TeamsTeamArticlesPostRequest, ArticlePermissionsResponseModel, ArticlePermissionsRequestModel } from './generated-api'
 import { FileFunctions } from './generated-api/FileFunctions/FileFunctions';
 import { ArticleFrontMatterModel } from './generated-api/models/GenericModels/ArticleFrontMatterModel';
+import { ArticleType } from './generated-api/models/ArticleType';
 
 interface StackOverflowFBBSyncSettings {
 	PAT: string;
@@ -23,8 +24,8 @@ const configuration = new Configuration({
 	}
 });
 
-const defaultTagIfNonePresent = ['obsidian'];
-const defaultArticleType = 'knowledgeArticle';
+const defaultTagIfNonePresent = ['untagged'];
+const defaultArticleType = ArticleType.KnowledgeArticle;
 
 export class DisplayMessageModal extends Modal {
 	constructor(app: App, message: string) {
@@ -273,23 +274,23 @@ export default class StackOverflowFBBSync extends Plugin {
 		articleFrontMatter.userHasUpvoted = article.userHasUpvoted;
 		articleFrontMatter.userHasDownvoted = article.userHasDownvoted;
 		articleFrontMatter.userCanEdit = article.userCanEdit;
-		articleFrontMatter.permissions = article.permissions ? this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(article.permissions) : null;
+		articleFrontMatter.permissions = article.permissions ? this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(article.permissions) : undefined;
 
-		// Convert the updated frontmatter back to YAML
-		const updatedFrontmatter = stringify(articleFrontMatter);
+		// Use processFrontMatter to update the frontmatter
+		await this.app.fileManager.processFrontMatter(activeFile, (frontmatter: Record<string, any>) => {
+			Object.assign(frontmatter, articleFrontMatter);
+			return frontmatter;
+		});
 
-		// Rebuild the file content
-		const newContent = `---\n${updatedFrontmatter}---\n\n${article.bodyMarkdown}`;
-
-		// Write the updated content back to the file
-		await this.app.vault.modify(activeFile, newContent);
+		// Update the body content
+		await this.app.vault.modify(activeFile, article.bodyMarkdown || '');
 	}
 
 	private convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(permissions: ArticlePermissionsResponseModel): ArticlePermissionsRequestModel {
 		return {
-			editableBy: permissions.editableBy,
-			editorUserIds: permissions.editorUsers?.map(user => user.id!),
-			editorUserGroupIds: permissions.editorUserGroups?.map(userGroup => userGroup.id!)
+			editableBy: permissions.articlePermissions,
+			editorUserIds: permissions.userGroups?.map(userGroup => userGroup.id).filter((id): id is number => id !== undefined),
+			editorUserGroupIds: undefined
 		}
 	}
 
@@ -303,7 +304,9 @@ export default class StackOverflowFBBSync extends Plugin {
 				bodyMarkdown: content,
 				tags: frontmatter.tags ?? defaultTagIfNonePresent,
 				type: frontmatter.type ? frontmatter.type : defaultArticleType,
-				permissions: frontmatter.permissions
+				permissions: frontmatter.permissions && 'articlePermissions' in frontmatter.permissions ? 
+					this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(frontmatter.permissions) : 
+					frontmatter.permissions as ArticlePermissionsRequestModel
 			}
 		} as TeamsTeamArticlesArticleIdPutRequest
 	}
@@ -317,7 +320,9 @@ export default class StackOverflowFBBSync extends Plugin {
 				bodyMarkdown: content,
 				tags: frontmatter.tags ?? defaultTagIfNonePresent,
 				type: frontmatter.type ? frontmatter.type : defaultArticleType,
-				permissions: frontmatter.permissions
+				permissions: frontmatter.permissions && 'articlePermissions' in frontmatter.permissions ? 
+					this.convertArticlePermissionsResponseModelToArticlePermissionsRequestModel(frontmatter.permissions) : 
+					frontmatter.permissions as ArticlePermissionsRequestModel
 			}
 		} as TeamsTeamArticlesPostRequest;
 	}
@@ -336,10 +341,10 @@ class StackOverflowFBBSyncSettingsTab extends PluginSettingTab {
 		const { containerEl } = this;
 
 		containerEl.empty();
-
+	
 		new Setting(containerEl)
-			.setName('API Key')
-			.setDesc('Generate this token from "Account Settings"--> Personal Access Tokens')
+			.setName('Stack Overflow API Key')
+			.setDesc('Generate this token from `Account Settings > Personal Access Tokens`.<br><img src="https://cdn.sstatic.net/Sites/stackoverflow/Img/apple-touch-icon.png" alt="Stack Overflow Logo" style="height: 24px; margin-top: 8px;">')
 			.addText(text => text
 				.setPlaceholder('Enter your secret')
 				.setValue(this.plugin.settings.PAT)
@@ -349,8 +354,8 @@ class StackOverflowFBBSyncSettingsTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Team Slug')
-			.setDesc('Find this in the URL of your team page')
+			.setName('Stack Overflow Team Slug')
+			.setDesc('The team identifier found in your Stack Overflow Teams URL (e.g., `stackoverflow.com/c/your-team-slug`).')
 			.addText(text => text
 				.setPlaceholder('Enter your Team Slug')
 				.setValue(String(this.plugin.settings.teamSlug))

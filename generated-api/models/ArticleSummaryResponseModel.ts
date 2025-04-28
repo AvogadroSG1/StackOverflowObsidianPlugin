@@ -24,12 +24,14 @@ import {
     UserSummaryResponseModelFromJSON,
     UserSummaryResponseModelFromJSONTyped,
     UserSummaryResponseModelToJSON,
+    instanceOfUserSummaryResponseModel
 } from './UserSummaryResponseModel';
 import type { ArticleType } from './ArticleType';
 import {
     ArticleTypeFromJSON,
     ArticleTypeFromJSONTyped,
     ArticleTypeToJSON,
+    instanceOfArticleType
 } from './ArticleType';
 
 /**
@@ -130,64 +132,110 @@ export interface ArticleSummaryResponseModel {
     isClosed?: boolean;
 }
 
-
+/**
+ * JSON representation of article summary response
+ */
+export type ArticleSummaryResponseModelJson = {
+    id?: number;
+    type?: ArticleType;
+    title?: string;
+    body?: string;
+    tags?: unknown[];
+    owner?: unknown;
+    lastEditor?: unknown;
+    creationDate?: string;
+    lastActivityDate?: string | null;
+    score?: number;
+    viewCount?: number;
+    shareUrl?: string;
+    isDeleted?: boolean;
+    isObsolete?: boolean;
+    isClosed?: boolean;
+}
 
 /**
  * Check if a given object implements the ArticleSummaryResponseModel interface.
  */
-export function instanceOfArticleSummaryResponseModel(value: object): value is ArticleSummaryResponseModel {
-    return true;
+export function instanceOfArticleSummaryResponseModel(value: unknown): value is ArticleSummaryResponseModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<ArticleSummaryResponseModel>;
+    
+    return (
+        (v.id === undefined || typeof v.id === 'number') &&
+        (v.type === undefined || instanceOfArticleType(v.type)) &&
+        (v.title === undefined || typeof v.title === 'string') &&
+        (v.body === undefined || typeof v.body === 'string') &&
+        (v.tags === undefined || Array.isArray(v.tags)) &&
+        (v.owner === undefined || instanceOfUserSummaryResponseModel(v.owner)) &&
+        (v.lastEditor === undefined || instanceOfUserSummaryResponseModel(v.lastEditor)) &&
+        (v.creationDate === undefined || v.creationDate instanceof Date) &&
+        (v.lastActivityDate === undefined || v.lastActivityDate === null || v.lastActivityDate instanceof Date) &&
+        (v.score === undefined || typeof v.score === 'number') &&
+        (v.viewCount === undefined || typeof v.viewCount === 'number') &&
+        (v.shareUrl === undefined || typeof v.shareUrl === 'string') &&
+        (v.isDeleted === undefined || typeof v.isDeleted === 'boolean') &&
+        (v.isObsolete === undefined || typeof v.isObsolete === 'boolean') &&
+        (v.isClosed === undefined || typeof v.isClosed === 'boolean')
+    );
 }
 
-export function ArticleSummaryResponseModelFromJSON(json: any): ArticleSummaryResponseModel {
+export function ArticleSummaryResponseModelFromJSON(json: ArticleSummaryResponseModelJson): ArticleSummaryResponseModel {
     return ArticleSummaryResponseModelFromJSONTyped(json, false);
 }
 
-export function ArticleSummaryResponseModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticleSummaryResponseModel {
-    if (json == null) {
-        return json;
+export function ArticleSummaryResponseModelFromJSONTyped(
+    json: ArticleSummaryResponseModelJson,
+    ignoreDiscriminator: boolean
+): ArticleSummaryResponseModel {
+    if (!json) {
+        throw new Error('ArticleSummaryResponseModel JSON cannot be null or undefined');
     }
+    
     return {
-        
-        'id': json['id'] == null ? undefined : json['id'],
-        'type': json['type'] == null ? undefined : ArticleTypeFromJSON(json['type']),
-        'title': json['title'] == null ? undefined : json['title'],
-        'body': json['body'] == null ? undefined : json['body'],
-        'tags': json['tags'] == null ? undefined : ((json['tags'] as Array<any>).map(TagSummaryResponseModelFromJSON)),
-        'owner': json['owner'] == null ? undefined : UserSummaryResponseModelFromJSON(json['owner']),
-        'lastEditor': json['lastEditor'] == null ? undefined : UserSummaryResponseModelFromJSON(json['lastEditor']),
-        'creationDate': json['creationDate'] == null ? undefined : (new Date(json['creationDate'])),
-        'lastActivityDate': json['lastActivityDate'] == null ? undefined : (new Date(json['lastActivityDate'])),
-        'score': json['score'] == null ? undefined : json['score'],
-        'viewCount': json['viewCount'] == null ? undefined : json['viewCount'],
-        'shareUrl': json['shareUrl'] == null ? undefined : json['shareUrl'],
-        'isDeleted': json['isDeleted'] == null ? undefined : json['isDeleted'],
-        'isObsolete': json['isObsolete'] == null ? undefined : json['isObsolete'],
-        'isClosed': json['isClosed'] == null ? undefined : json['isClosed'],
+        'id': json.id,
+        'type': json.type === undefined ? undefined : ArticleTypeFromJSON(json.type),
+        'title': json.title,
+        'body': json.body,
+        'tags': json.tags === undefined ? undefined : json.tags.map(TagSummaryResponseModelFromJSON),
+        'owner': json.owner === undefined ? undefined : UserSummaryResponseModelFromJSON(json.owner),
+        'lastEditor': json.lastEditor === undefined ? undefined : UserSummaryResponseModelFromJSON(json.lastEditor),
+        'creationDate': json.creationDate === undefined ? undefined : new Date(json.creationDate),
+        'lastActivityDate': json.lastActivityDate === undefined ? undefined : json.lastActivityDate === null ? null : new Date(json.lastActivityDate),
+        'score': json.score,
+        'viewCount': json.viewCount,
+        'shareUrl': json.shareUrl,
+        'isDeleted': json.isDeleted,
+        'isObsolete': json.isObsolete,
+        'isClosed': json.isClosed
     };
 }
 
-export function ArticleSummaryResponseModelToJSON(value?: ArticleSummaryResponseModel | null): any {
-    if (value == null) {
-        return value;
+export function ArticleSummaryResponseModelToJSON(value?: ArticleSummaryResponseModel | null): ArticleSummaryResponseModelJson | null {
+    if (!value) {
+        return null;
     }
+    
+    const type = value.type === undefined ? undefined : ArticleTypeToJSON(value.type);
+    if (type === null) {
+        throw new Error('Invalid ArticleType value');
+    }
+    
     return {
-        
-        'id': value['id'],
-        'type': ArticleTypeToJSON(value['type']),
-        'title': value['title'],
-        'body': value['body'],
-        'tags': value['tags'] == null ? undefined : ((value['tags'] as Array<any>).map(TagSummaryResponseModelToJSON)),
-        'owner': UserSummaryResponseModelToJSON(value['owner']),
-        'lastEditor': UserSummaryResponseModelToJSON(value['lastEditor']),
-        'creationDate': value['creationDate'] == null ? undefined : ((value['creationDate']).toISOString()),
-        'lastActivityDate': value['lastActivityDate'] == null ? undefined : ((value['lastActivityDate'] as any).toISOString()),
-        'score': value['score'],
-        'viewCount': value['viewCount'],
-        'shareUrl': value['shareUrl'],
-        'isDeleted': value['isDeleted'],
-        'isObsolete': value['isObsolete'],
-        'isClosed': value['isClosed'],
+        'id': value.id,
+        'type': type,
+        'title': value.title,
+        'body': value.body,
+        'tags': value.tags === undefined ? undefined : value.tags.map(TagSummaryResponseModelToJSON),
+        'owner': value.owner === undefined ? undefined : UserSummaryResponseModelToJSON(value.owner),
+        'lastEditor': value.lastEditor === undefined ? undefined : UserSummaryResponseModelToJSON(value.lastEditor),
+        'creationDate': value.creationDate === undefined ? undefined : value.creationDate.toISOString(),
+        'lastActivityDate': value.lastActivityDate === undefined ? undefined : value.lastActivityDate === null ? null : value.lastActivityDate.toISOString(),
+        'score': value.score,
+        'viewCount': value.viewCount,
+        'shareUrl': value.shareUrl,
+        'isDeleted': value.isDeleted,
+        'isObsolete': value.isObsolete,
+        'isClosed': value.isClosed
     };
 }
 

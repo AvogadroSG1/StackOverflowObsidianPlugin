@@ -13,6 +13,16 @@
  */
 
 import { mapValues } from '../runtime';
+
+/**
+ * JSON representation of a user group request
+ */
+export type UserGroupRequestModelJson = {
+    name: string;
+    description?: string;
+    userIds?: number[];
+}
+
 /**
  * 
  * @export
@@ -42,36 +52,43 @@ export interface UserGroupRequestModel {
 /**
  * Check if a given object implements the UserGroupRequestModel interface.
  */
-export function instanceOfUserGroupRequestModel(value: object): value is UserGroupRequestModel {
-    if (!('name' in value) || (value as any)['name'] === undefined) return false;
-    return true;
+export function instanceOfUserGroupRequestModel(value: unknown): value is UserGroupRequestModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<UserGroupRequestModel>;
+    
+    return typeof v.name === 'string' &&
+           (v.description === undefined || typeof v.description === 'string') &&
+           (v.userIds === undefined || (Array.isArray(v.userIds) && v.userIds.every(id => typeof id === 'number')));
 }
 
-export function UserGroupRequestModelFromJSON(json: any): UserGroupRequestModel {
+export function UserGroupRequestModelFromJSON(json: UserGroupRequestModelJson): UserGroupRequestModel {
     return UserGroupRequestModelFromJSONTyped(json, false);
 }
 
-export function UserGroupRequestModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): UserGroupRequestModel {
-    if (json == null) {
-        return json;
+export function UserGroupRequestModelFromJSONTyped(
+    json: UserGroupRequestModelJson,
+    ignoreDiscriminator: boolean
+): UserGroupRequestModel {
+    if (!json) {
+        throw new Error('UserGroupRequestModel JSON cannot be null or undefined');
     }
+    
     return {
-        
-        'name': json['name'],
-        'description': json['description'] == null ? undefined : json['description'],
-        'userIds': json['userIds'] == null ? undefined : json['userIds'],
+        'name': json.name,
+        'description': json.description,
+        'userIds': json.userIds,
     };
 }
 
-export function UserGroupRequestModelToJSON(value?: UserGroupRequestModel | null): any {
-    if (value == null) {
-        return value;
+export function UserGroupRequestModelToJSON(value?: UserGroupRequestModel | null): UserGroupRequestModelJson | null {
+    if (!value) {
+        return null;
     }
+    
     return {
-        
-        'name': value['name'],
-        'description': value['description'],
-        'userIds': value['userIds'],
+        'name': value.name,
+        'description': value.description,
+        'userIds': value.userIds,
     };
 }
 

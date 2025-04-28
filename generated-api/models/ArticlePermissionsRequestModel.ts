@@ -18,7 +18,17 @@ import {
     ArticlePermissionsTypeFromJSON,
     ArticlePermissionsTypeFromJSONTyped,
     ArticlePermissionsTypeToJSON,
+    instanceOfArticlePermissionsType
 } from './ArticlePermissionsType';
+
+/**
+ * JSON representation of article permissions request
+ */
+export type ArticlePermissionsRequestModelJson = {
+    editableBy?: string;
+    editorUserIds?: number[];
+    editorUserGroupIds?: number[];
+}
 
 /**
  * 
@@ -46,40 +56,49 @@ export interface ArticlePermissionsRequestModel {
     editorUserGroupIds?: Array<number>;
 }
 
-
-
 /**
  * Check if a given object implements the ArticlePermissionsRequestModel interface.
  */
-export function instanceOfArticlePermissionsRequestModel(value: object): value is ArticlePermissionsRequestModel {
+export function instanceOfArticlePermissionsRequestModel(value: unknown): value is ArticlePermissionsRequestModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<ArticlePermissionsRequestModel>;
+    
+    // All fields are optional, so we just need to check types if they exist
+    if (v.editableBy !== undefined && !instanceOfArticlePermissionsType(v.editableBy)) return false;
+    if (v.editorUserIds !== undefined && !Array.isArray(v.editorUserIds)) return false;
+    if (v.editorUserGroupIds !== undefined && !Array.isArray(v.editorUserGroupIds)) return false;
+    
     return true;
 }
 
-export function ArticlePermissionsRequestModelFromJSON(json: any): ArticlePermissionsRequestModel {
+export function ArticlePermissionsRequestModelFromJSON(json: ArticlePermissionsRequestModelJson): ArticlePermissionsRequestModel {
     return ArticlePermissionsRequestModelFromJSONTyped(json, false);
 }
 
-export function ArticlePermissionsRequestModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): ArticlePermissionsRequestModel {
-    if (json == null) {
-        return json;
+export function ArticlePermissionsRequestModelFromJSONTyped(
+    json: ArticlePermissionsRequestModelJson,
+    ignoreDiscriminator: boolean
+): ArticlePermissionsRequestModel {
+    if (!json) {
+        throw new Error('ArticlePermissionsRequestModel JSON cannot be null or undefined');
     }
+    
     return {
-        
-        'editableBy': json['editableBy'] == null ? undefined : ArticlePermissionsTypeFromJSON(json['editableBy']),
-        'editorUserIds': json['editorUserIds'] == null ? undefined : json['editorUserIds'],
-        'editorUserGroupIds': json['editorUserGroupIds'] == null ? undefined : json['editorUserGroupIds'],
+        'editableBy': json.editableBy === undefined ? undefined : ArticlePermissionsTypeFromJSON(json.editableBy),
+        'editorUserIds': json.editorUserIds,
+        'editorUserGroupIds': json.editorUserGroupIds,
     };
 }
 
-export function ArticlePermissionsRequestModelToJSON(value?: ArticlePermissionsRequestModel | null): any {
-    if (value == null) {
-        return value;
+export function ArticlePermissionsRequestModelToJSON(value?: ArticlePermissionsRequestModel | null): ArticlePermissionsRequestModelJson | null {
+    if (!value) {
+        return null;
     }
+    
     return {
-        
-        'editableBy': ArticlePermissionsTypeToJSON(value['editableBy']),
-        'editorUserIds': value['editorUserIds'],
-        'editorUserGroupIds': value['editorUserGroupIds'],
+        'editableBy': value.editableBy === undefined ? undefined : ArticlePermissionsTypeToJSON(value.editableBy) ?? undefined,
+        'editorUserIds': value.editorUserIds,
+        'editorUserGroupIds': value.editorUserGroupIds,
     };
 }
 

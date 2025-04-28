@@ -53,7 +53,11 @@ export function PaginatedSearchResultsItemsInnerFromJSONTyped(json: any, ignoreD
         return AnswerSearchResultModelFromJSONTyped(json, true);
     }
     if (instanceOfArticleSearchResultModel(json)) {
-        return ArticleSearchResultModelFromJSONTyped(json, true);
+        const jsonCopy: any = { ...json };
+        if (jsonCopy.creationDate instanceof Date) {
+            jsonCopy.creationDate = jsonCopy.creationDate.toISOString();
+        }
+        return ArticleSearchResultModelFromJSONTyped(jsonCopy, true);
     }
     if (instanceOfQuestionSearchResultModel(json)) {
         return QuestionSearchResultModelFromJSONTyped(json, true);

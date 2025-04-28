@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+
+/**
+ * JSON representation of an answer request
+ */
+export type AnswerRequestModelJson = {
+    body: string;
+}
+
 /**
  * 
  * @export
@@ -30,32 +38,34 @@ export interface AnswerRequestModel {
 /**
  * Check if a given object implements the AnswerRequestModel interface.
  */
-export function instanceOfAnswerRequestModel(value: object): value is AnswerRequestModel {
-    if (!('body' in value) || (value as any)['body'] === undefined) return false;
-    return true;
+export function instanceOfAnswerRequestModel(value: unknown): value is AnswerRequestModel {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Partial<AnswerRequestModel>;
+    return typeof v.body === 'string';
 }
 
-export function AnswerRequestModelFromJSON(json: any): AnswerRequestModel {
+export function AnswerRequestModelFromJSON(json: AnswerRequestModelJson): AnswerRequestModel {
     return AnswerRequestModelFromJSONTyped(json, false);
 }
 
-export function AnswerRequestModelFromJSONTyped(json: any, ignoreDiscriminator: boolean): AnswerRequestModel {
-    if (json == null) {
-        return json;
+export function AnswerRequestModelFromJSONTyped(
+    json: AnswerRequestModelJson,
+    ignoreDiscriminator: boolean
+): AnswerRequestModel {
+    if (!json) {
+        throw new Error('AnswerRequestModel JSON cannot be null or undefined');
     }
     return {
-        
-        'body': json['body'],
+        'body': json.body,
     };
 }
 
-export function AnswerRequestModelToJSON(value?: AnswerRequestModel | null): any {
-    if (value == null) {
-        return value;
+export function AnswerRequestModelToJSON(value?: AnswerRequestModel | null): AnswerRequestModelJson | null {
+    if (!value) {
+        return null;
     }
     return {
-        
-        'body': value['body'],
+        'body': value.body,
     };
 }
 
